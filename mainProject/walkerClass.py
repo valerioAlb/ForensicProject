@@ -4,11 +4,14 @@ import hashlib
 import subprocess
 import logging
 
+# Dimension expressed in megabytes
+BREACKPOINT_DIMENSION = 100;
 
 class Walker:
 
     log = logging.getLogger("main.walkerClass")
     breackpointVar = 1
+    dim_counter = 0
 
 
     def __init__(self,parser,breackpointFile):
@@ -66,6 +69,13 @@ class Walker:
 
 
     def getFileMetadata(self,mime,fname):
-        self.parser.parse(mime, fname)
+
+        dimNextFileToParse = os.path.getsize(fname)
         if "/home/valerio/temp/" not in fname:
-            self.log.info('File parsed: ' + fname)
+            # dimension in Byte
+            if self.dim_counter + dimNextFileToParse > BREACKPOINT_DIMENSION * 1000000:
+                self.log.info('[BREAKPOINT] #' + fname)
+                self.dim_counter = 0;
+            else:
+                self.dim_counter = self.dim_counter + dimNextFileToParse
+        self.parser.parse(mime, fname)

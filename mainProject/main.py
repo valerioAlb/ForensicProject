@@ -8,17 +8,25 @@ LOG_PATH = './LOG.log'
 if __name__ == '__main__':
 
     logging.basicConfig(filename='./LOG.log',level=logging.DEBUG,format=' [%(levelname)s] %(asctime)s %(message)s')
-    logging.info('Program Started')
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
 
-    if os.path.isfile(LOG_PATH):
-        breackpointFile = '###'
-        file = open(LOG_PATH, 'rb')
-    else:
-        breackpointFile = '###'
+    breackpointFile = '###'
 
+    if os.path.isfile(LOG_PATH):
+        file = open(LOG_PATH, 'rb')
+        for line in file:
+            if line.split(' ')[1] == '[INFO]':
+                if line.split(' ')[4] == '[BREAKPOINT]':
+                    breackpointFile = line.split('#')[-1].rstrip('\n')
+
+                # If the log file ends with [END] tag, it means that in the previous session there was no crash
+                elif line.split(' ')[4] == '[END]':
+                    breackpointFile = '###'
+
+    print breackpointFile
+    logging.info('[START] Program Started')
     methodClass = walkerClass.Walker(parser,breackpointFile)
     methodClass.WalkPath('/home/valerio/Documenti/Forensic/TEST FILE METADATA')
 
-    logging.info('Program Ended')
+    logging.info('[END] Program Ended')
