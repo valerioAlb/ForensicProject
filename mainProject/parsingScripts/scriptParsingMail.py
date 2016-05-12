@@ -114,7 +114,7 @@ def parseMailAttachment(ID, PATH_NAME, part):
 
     elif ftype == 'text/plain':
         path = PATH_NAME + '/' + str(ID)
-        body = part.get_payload(decode=True)  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
+        body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
         doc = {
             'filePath': path,
             'text/plain': body,
@@ -122,6 +122,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
         try:
             es.index(index='forensic_db', doc_type='mail', body=doc)
         except:
+            print 'error with Mail plain: '
+            print ID
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
@@ -131,8 +133,7 @@ def parseMailAttachment(ID, PATH_NAME, part):
 
     elif ftype == 'text/html':
         path = PATH_NAME + '/' + str(ID)
-        body = part.get_payload(decode=True)  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
-        body = body.decode()
+        body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
         doc = {
             'filePath': path,
             'text/html': body,
@@ -140,6 +141,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
         try:
             es.index(index='forensic_db', doc_type='mail', body=doc)
         except:
+            print 'error with Mail html: '
+            print ID
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
