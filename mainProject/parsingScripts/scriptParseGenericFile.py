@@ -1,7 +1,11 @@
 #file/generic
 import subprocess
+import elasticsearch
 
 def fileParse(PATH_NAME,mime):
+
+    es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+
     p1 = subprocess.Popen(["exiftool", PATH_NAME], stdout=subprocess.PIPE)
     result = p1.communicate()[0]
     # Now process the result, getting the lines with values
@@ -13,5 +17,10 @@ def fileParse(PATH_NAME,mime):
             output = token.split(':', 1)
             print output[0].strip(" ")
             print output[1].strip(" ")
+            doc = {
+                "filePath": PATH_NAME,
+                output[0].strip(" "): output[1].strip(" ")
+            }
+            es.index(index='forensic_db', doc_type='file-metadata', body=doc)
 
     return 0;

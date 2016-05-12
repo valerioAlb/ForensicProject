@@ -2,6 +2,7 @@ import walkerClass
 import fileParserClass
 import logging
 import os
+import elasticsearchUploader
 
 LOG_PATH = './LOG.log'
 

@@ -3,12 +3,14 @@ import time
 import hashlib
 import subprocess
 import logging
+import elasticsearch
 
 # Dimension expressed in megabytes
 BREACKPOINT_DIMENSION = 100;
 
 class Walker:
 
+    es = elasticsearch.Elasticsearch("127.0.0.1:9200")
     log = logging.getLogger("main.walkerClass")
     breackpointVar = 1
     dim_counter = 0
@@ -55,6 +57,43 @@ class Walker:
         print 'accessTime: ' + str(accessTime)
         print 'createdTime: ' + str(createdTime)
         print 'hash: ' + str(fileHash)
+
+        #Loading into kibana
+        doc = {
+            "filePath": fname,
+            "extension": str(os.path.splitext(fname)[1])
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+        doc = {
+            "filePath": fname,
+            "mimeType": mime
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+        doc = {
+            "filePath": fname,
+            "size": str(size)
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+        doc = {
+            "filePath": fname,
+            "modifiedTime": str(modifiedTime)
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+        doc = {
+            "filePath": fname,
+            "accessTime": str(accessTime)
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+        doc = {
+            "filePath": fname,
+            "createdTime": str(fileHash)
+        }
+        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         if self.breackpointFile == '###':
             self.breackpointVar = 0
