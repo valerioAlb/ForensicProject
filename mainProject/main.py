@@ -6,11 +6,11 @@ import dbManager
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/leonardo/PROVA'
+walkpath='/home/valerio/Documenti/Forensic/TEST FILE METADATA'
 
 if __name__ == '__main__':
 
-    logging.basicConfig(filename='./LOG.log',level=logging.DEBUG,format=' [%(levelname)s] %(asctime)s %(message)s')
+    logging.basicConfig(filename='./LOG.log',level=logging.INFO,format=' [%(levelname)s] %(asctime)s %(message)s')
 
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
@@ -32,8 +32,11 @@ if __name__ == '__main__':
 
     print breackpointFile
     logging.info('[START] Program Started')
+
     methodClass = walkerClass.Walker(parser,breackpointFile)
     methodClass.WalkPath(walkpath)
+
+    print 'Program succesfully ended'
 
     logging.info('[END] Program Ended')
 

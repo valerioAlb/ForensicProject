@@ -8,7 +8,7 @@ sys.path.insert(0, '../')
 def fileParse(PATH_NAME,extension):
 
     base = os.path.basename(PATH_NAME)
-    dirTemp = "/media/leonardo/temp/"+base
+    dirTemp = "/media/valerio/temp/"+base
 
     parser = importlib.import_module("fileParserClass")
     walker = importlib.import_module("walkerClass")

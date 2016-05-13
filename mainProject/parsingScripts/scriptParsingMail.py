@@ -2,12 +2,15 @@
 from email.parser import Parser
 import mailbox
 import rarfile
+import tempfile
 import zipfile
-import elasticsearch
 import io
-import exifread
-import dbManager
+import importlib
+import subprocess
+import sys
+sys.path.insert(0, '../')
 
+dbManager = importlib.import_module("dbManager")
 dbmanager = dbManager.Manager()
 #es = elasticsearch.Elasticsearch("127.0.0.1:9200")
 
@@ -62,23 +65,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
     name = part.get_filename()
 
     ftype = part.get_content_type()
-    if "image/" in ftype:
-        #path = os.path.join(PATH_NAME,ID,name)
-        path = PATH_NAME+'/'+str(ID)+'/'+str(name)
-        data = part.get_payload()
-        decodedData = data.decode('base64')
-        f = io.BytesIO(decodedData)
-        tags = exifread.process_file(f)
-        for tag in tags.keys():
-            if tag not in ('JPEGThumbnail', 'TIFFThumbnail', 'EXIF MakerNote'):
-                doc = {
-                    'filePath': path,
-                    tag: tags[tag]
-                }
-                dbmanager.push('forensic_db', 'file-metadata', doc)
-                #es.index(index='forensic_db', doc_type='file-metadata', body=doc)
-        f.close()
-    elif ftype == 'application/zip':
+
+    if ftype == 'application/zip':
         data = part.get_payload()
         decodedData = data.decode('base64')
         f = io.BytesIO(decodedData)
@@ -159,16 +147,34 @@ def parseMailAttachment(ID, PATH_NAME, part):
 
     elif 'multipart/' in ftype:
         #nothing to do. The content is duplicated
-        print
+        pass
     else:
-        #path = os.path.join(PATH_NAME,ID,name)
         path = PATH_NAME + '/' + str(ID) + '/' + str(name)
-        doc = {
-            'filePath': path,
-            'exeption': 'Unable to parse'
-        }
-        dbmanager.push('forensic_db', 'exception', doc)
-        #es.index(index='forensic_db', doc_type='exception', body=doc)
+        data = part.get_payload()
+        decodedData = data.decode('base64')
+        ###
+        temp = tempfile.NamedTemporaryFile()
+        temp.write(decodedData)
+        temp.seek(0)
+        try:
+            #print 'temp:', temp
+            #print 'temp.name:', temp.name
+            p1 = subprocess.Popen(["exiftool", temp.name], stdout=subprocess.PIPE)
+            result = p1.communicate()[0]
+            tokens = result.split('\n')
+            # print tokens
+            #print 'File metadata---------------------------------------------'
+            for token in tokens:
+                if token != '':
+                    output = token.split(':', 1)
+                    doc = {
+                        "filePath": path,
+                        output[0].strip(" "): output[1].strip(" ")
+                    }
+                    dbmanager.push('forensic_db', 'file-metadata', doc)
+        finally:
+            # Automatically cleans up the file
+            temp.close()
 
 
 def uploadDatabaseZip(path, compressSize, createSystem, dateTime, externalAttr, fileName, fileSize,

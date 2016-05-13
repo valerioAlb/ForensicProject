@@ -1,10 +1,12 @@
 #file/generic
 import subprocess
-import elasticsearch
-import dbManager
+import importlib
+import sys
+sys.path.insert(0, '../')
 
 def fileParse(PATH_NAME,mime):
 
+    dbManager = importlib.import_module("dbManager")
     dbmanager = dbManager.Manager()
     #es = elasticsearch.Elasticsearch("127.0.0.1:9200")
 
