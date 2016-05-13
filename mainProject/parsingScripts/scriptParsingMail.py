@@ -6,7 +6,10 @@ import zipfile
 import elasticsearch
 import io
 import exifread
-es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+import dbManager
+
+dbmanager = dbManager.Manager()
+#es = elasticsearch.Elasticsearch("127.0.0.1:9200")
 
 def fileParse(PATH_NAME,extension):
 
@@ -18,7 +21,8 @@ def fileParse(PATH_NAME,extension):
                 'mailID': ID,
                 x[0]: x[1],
             }
-            es.index(index='forensic_db', doc_type='mails', body=doc)
+            dbmanager.push('forensic_db','mails',doc)
+            #es.index(index='forensic_db', doc_type='mails', body=doc)
 
         for part in message.walk():
             parseMailAttachment(ID, PATH_NAME, part)
@@ -38,7 +42,8 @@ def fileParse(PATH_NAME,extension):
                     'mailID': ID,
                     x[0]: x[1],
                 }
-                es.index(index='forensic_db', doc_type='mails', body=doc)
+                dbmanager.push('forensic_db', 'mails', doc)
+                #es.index(index='forensic_db', doc_type='mails', body=doc)
 
             #From now on we consider the mail attachments
 
@@ -70,7 +75,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
                     'filePath': path,
                     tag: tags[tag]
                 }
-                es.index(index='forensic_db', doc_type='file-metadata', body=doc)
+                dbmanager.push('forensic_db', 'file-metadata', doc)
+                #es.index(index='forensic_db', doc_type='file-metadata', body=doc)
         f.close()
     elif ftype == 'application/zip':
         data = part.get_payload()
@@ -88,7 +94,7 @@ def parseMailAttachment(ID, PATH_NAME, part):
             zipExternalAttr = file.external_attr
             zipDateTime = file.date_time
 
-            uploadDatabase(path, zipCompressSize, zipCreateSystem, zipDateTime, zipExternalAttr,
+            uploadDatabaseZip(path, zipCompressSize, zipCreateSystem, zipDateTime, zipExternalAttr,
                            zipFileName, zipFileSize, zipInternalAttr)
 
         f.close()
@@ -103,13 +109,9 @@ def parseMailAttachment(ID, PATH_NAME, part):
             rarFileName = file.filename
             rarFileSize = file.file_size
             rarCompressSize = file.compress_size
-            rarCreateSystem = file.create_system
-            rarInternalAttr = file.internal_attr
-            rarExternalAttr = file.external_attr
             rarDateTime = file.date_time
 
-            uploadDatabase(path, rarCompressSize, rarCreateSystem, rarDateTime, rarExternalAttr, rarFileName, rarFileSize,
-                       rarInternalAttr)
+            uploadDatabaseRar(path, rarCompressSize, rarDateTime, rarFileName, rarFileSize)
         f.close()
 
     elif ftype == 'text/plain':
@@ -120,7 +122,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
             'text/plain': body,
         }
         try:
-            es.index(index='forensic_db', doc_type='mail', body=doc)
+            dbmanager.push('forensic_db', 'mails', doc)
+            #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
             print 'error with Mail plain: '
             print ID
@@ -129,7 +132,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
                 'mailID': ID,
                 'payload': temp,
             }
-            es.index(index='forensic_db', doc_type='mails', body=doc)
+            dbmanager.push('forensic_db', 'mails', doc)
+            #es.index(index='forensic_db', doc_type='mails', body=doc)
 
     elif ftype == 'text/html':
         path = PATH_NAME + '/' + str(ID)
@@ -139,7 +143,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
             'text/html': body,
         }
         try:
-            es.index(index='forensic_db', doc_type='mail', body=doc)
+            dbmanager.push('forensic_db', 'mails', doc)
+            #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
             print 'error with Mail html: '
             print ID
@@ -148,10 +153,12 @@ def parseMailAttachment(ID, PATH_NAME, part):
                 'mailID': ID,
                 'payload': temp,
             }
-            es.index(index='forensic_db', doc_type='mails', body=doc)
+            dbmanager.push('forensic_db', 'mails', doc)
+            #es.index(index='forensic_db', doc_type='mails', body=doc)
 
 
     elif 'multipart/' in ftype:
+        #nothing to do. The content is duplicated
         print
     else:
         #path = os.path.join(PATH_NAME,ID,name)
@@ -160,43 +167,82 @@ def parseMailAttachment(ID, PATH_NAME, part):
             'filePath': path,
             'exeption': 'Unable to parse'
         }
-        es.index(index='forensic_db', doc_type='exeption', body=doc)
+        dbmanager.push('forensic_db', 'exception', doc)
+        #es.index(index='forensic_db', doc_type='exception', body=doc)
 
 
-def uploadDatabase(path, compressSize, createSystem, dateTime, externalAttr, fileName, fileSize,
+def uploadDatabaseZip(path, compressSize, createSystem, dateTime, externalAttr, fileName, fileSize,
                    internalAttr):
     doc = {
         'filePath': path,
         'size': fileSize,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'compressSize': compressSize,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'createSystem': createSystem,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'fileName': fileName,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'internalAttr': internalAttr,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'externalAttr': externalAttr,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
     doc = {
         'filePath': path,
         'dateTime': dateTime,
     }
-    es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+
+def uploadDatabaseRar(path, compressSize, dateTime, fileName, fileSize):
+
+    doc = {
+        'filePath': path,
+        'size': fileSize,
+    }
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    doc = {
+        'filePath': path,
+        'compressSize': compressSize,
+    }
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+    doc = {
+        'filePath': path,
+        'fileName': fileName,
+    }
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+
+
+    doc = {
+        'filePath': path,
+        'dateTime': dateTime,
+    }
+    dbmanager.push('forensic_db', 'file-system-metadata', doc)
+    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)

@@ -1,10 +1,12 @@
 #file/generic
 import subprocess
 import elasticsearch
+import dbManager
 
 def fileParse(PATH_NAME,mime):
 
-    es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+    dbmanager = dbManager.Manager()
+    #es = elasticsearch.Elasticsearch("127.0.0.1:9200")
 
     p1 = subprocess.Popen(["exiftool", PATH_NAME], stdout=subprocess.PIPE)
     result = p1.communicate()[0]
@@ -21,6 +23,7 @@ def fileParse(PATH_NAME,mime):
                 "filePath": PATH_NAME,
                 output[0].strip(" "): output[1].strip(" ")
             }
-            es.index(index='forensic_db', doc_type='file-metadata', body=doc)
+            dbmanager.push('forensic_db','file-metadata',doc)
+            #es.index(index='forensic_db', doc_type='file-metadata', body=doc)
 
     return 0;

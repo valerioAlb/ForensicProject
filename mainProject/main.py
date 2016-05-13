@@ -2,15 +2,20 @@ import walkerClass
 import fileParserClass
 import logging
 import os
-import elasticsearchUploader
+import dbManager
 
 LOG_PATH = './LOG.log'
+
+walkpath='/home/leonardo/PROVA'
 
 if __name__ == '__main__':
 
     logging.basicConfig(filename='./LOG.log',level=logging.DEBUG,format=' [%(levelname)s] %(asctime)s %(message)s')
+
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
+
+    dbmanager = dbManager.Manager()
 
     breackpointFile = '###'
 
@@ -28,6 +33,10 @@ if __name__ == '__main__':
     print breackpointFile
     logging.info('[START] Program Started')
     methodClass = walkerClass.Walker(parser,breackpointFile)
-    methodClass.WalkPath('/home/valerio/Documenti/Forensic/TEST FILE METADATA')
+    methodClass.WalkPath(walkpath)
 
     logging.info('[END] Program Ended')
+
+    def pushToDatabase(index,doc_type,body):
+
+        dbmanager.push(index,doc_type,body)

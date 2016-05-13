@@ -4,13 +4,17 @@ import hashlib
 import subprocess
 import logging
 import elasticsearch
+import dbManager
 
 # Dimension expressed in megabytes
 BREACKPOINT_DIMENSION = 100;
 
 class Walker:
 
-    es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+    dbmanager = dbManager.Manager()
+    #es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+
+
     log = logging.getLogger("main.walkerClass")
     breackpointVar = 1
     dim_counter = 0
@@ -63,37 +67,43 @@ class Walker:
             "filePath": fname,
             "extension": str(os.path.splitext(fname)[1])
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db','file-system-metadata',doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
             "filePath": fname,
             "mimeType": mime
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
             "filePath": fname,
             "size": str(size)
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
             "filePath": fname,
             "modifiedTime": str(modifiedTime)
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
             "filePath": fname,
             "accessTime": str(accessTime)
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
             "filePath": fname,
             "createdTime": str(fileHash)
         }
-        self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+        #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         if self.breackpointFile == '###':
             self.breackpointVar = 0
@@ -110,7 +120,7 @@ class Walker:
     def getFileMetadata(self,mime,fname):
 
         dimNextFileToParse = os.path.getsize(fname)
-        if "/home/valerio/temp/" not in fname:
+        if "/media/temp/" not in fname:
             # dimension in Byte
             if self.dim_counter + dimNextFileToParse > BREACKPOINT_DIMENSION * 1000000:
                 self.log.info('[BREAKPOINT] #' + fname)
