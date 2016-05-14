@@ -34,14 +34,14 @@ class FileParser:
         for i in self.dict:
             print '"'+i+'" parsed with the script: "'+ self.dict[i]+'"'
 
-    def parse(self,mime,fname):
+    def parse(self,mime,fname,realPath=""):
 
         if mime in self.dict.keys():
             # dynamically import only the interested script and use it!
             lib = importlib.import_module(self.dict[mime])
-            lib.fileParse(fname,mime)
+            lib.fileParse(fname,mime,realPath)
 
         else:
             #print "Use generic Parser"
             lib = importlib.import_module(self.dict['file/generic'])
-            lib.fileParse(fname, mime)
+            lib.fileParse(fname, mime,realPath)

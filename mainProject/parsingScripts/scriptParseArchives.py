@@ -6,7 +6,7 @@ import scriptParseGenericFile
 import os
 sys.path.insert(0, '../')
 
-def fileParse(PATH_NAME,extension):
+def fileParse(PATH_NAME,extension, realPath=""):
 
     scriptParseGenericFile.fileParse(PATH_NAME,extension)
 
@@ -24,7 +24,10 @@ def fileParse(PATH_NAME,extension):
 
     parser = parser.FileParser()
     methodClass = walker.Walker(parser,'###')
-    methodClass.WalkPath(dirTemp)
+    if realPath=="":
+        methodClass.WalkPath(dirTemp,PATH_NAME)
+    else:
+        methodClass.WalkPath(dirTemp, realPath)
 
 
     #Umount the file

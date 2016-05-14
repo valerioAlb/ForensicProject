@@ -4,7 +4,12 @@ import importlib
 import sys
 sys.path.insert(0, '../')
 
-def fileParse(PATH_NAME,mime):
+def fileParse(PATH_NAME,mime,realPath=""):
+
+    if realPath =="":
+        path = PATH_NAME
+    else:
+        path=realPath
 
     dbManager = importlib.import_module("dbManager")
     dbmanager = dbManager.Manager()
@@ -22,7 +27,7 @@ def fileParse(PATH_NAME,mime):
             #print output[0].strip(" ")
             #print output[1].strip(" ")
             doc = {
-                "filePath": PATH_NAME,
+                "filePath": path,
                 output[0].strip(" ").replace(".",""): output[1].strip(" ")
             }
             dbmanager.push('forensic_db','file-metadata',doc)

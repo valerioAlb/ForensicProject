@@ -27,19 +27,20 @@ class Walker:
     # To analyze the content of a folder, call this method and pass the path of a folder. It will automatically
     # retrieve all the files inside.
 
-    def WalkPath(self,rootPath):
+    #The comingPath variable (if setted) is useful to not forget the archive filePath we are exploring.
+    def WalkPath(self,rootPath,comingPath=""):
         for root, dirs, files in os.walk(rootPath):
             for file in files:
                 fname = os.path.join(root, file)
                 if os.path.isfile(fname):
                     # Now we have to perform some operation, like compute an hash, get metadata, if is a final file,
                     # or go deeper, if it is a compressed file.
-                    self.getFileSystemMetaData(fname)
+                    self.getFileSystemMetaData(fname,comingPath)
 
 
 
     # fname is a path to the desired file.
-    def getFileSystemMetaData(self, fname):
+    def getFileSystemMetaData(self, fname, comingPath=""):
         #print '***************'
 
         # Get mime type of the file
@@ -63,49 +64,55 @@ class Walker:
         # print 'hash: ' + str(fileHash)
 
         #Loading into kibana
+
+        if comingPath == "":
+            realPath=fname
+        else:
+            realPath=comingPath+"/"+os.path.basename(fname)
+
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "extension": str(os.path.splitext(fname)[1])
         }
         self.dbmanager.push('forensic_db','file-system-metadata',doc)
         #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "mimeType": mime
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
         #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "size": str(size)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
         #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "modifiedTime": str(modifiedTime)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
         #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "accessTime": str(accessTime)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
         #self.es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "accessTime": str(createdTime)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
 
         doc = {
-            "filePath": fname,
+            "filePath": realPath,
             "createdTime": str(fileHash)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
@@ -118,12 +125,16 @@ class Walker:
         else:
             self.breackpointVar = 0
 
-        self.getFileMetadata(mime, fname)
+        if comingPath == "":
+            self.getFileMetadata(mime, fname)
+        else:
+            self.getFileMetadata(mime, fname, realPath)
 
 
 
 
-    def getFileMetadata(self,mime,fname):
+
+    def getFileMetadata(self,mime,fname,path=""):
 
         dimNextFileToParse = os.path.getsize(fname)
         if "/media/temp/" not in fname:
@@ -134,4 +145,4 @@ class Walker:
                 print 'BREAKPOINT SETTED'
             else:
                 self.dim_counter = self.dim_counter + dimNextFileToParse
-        self.parser.parse(mime, fname)
+        self.parser.parse(mime, fname, path)
