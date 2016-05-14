@@ -22,7 +22,7 @@ def fileParse(PATH_NAME,extension):
         for x in message.items():
             doc = {
                 'mailID': ID,
-                x[0]: x[1],
+                x[0].replace(".",""): x[1],
             }
             dbmanager.push('forensic_db','mails',doc)
             #es.index(index='forensic_db', doc_type='mails', body=doc)
@@ -35,15 +35,15 @@ def fileParse(PATH_NAME,extension):
         mbox = mailbox.mbox(PATH_NAME)
         numMail = len(mbox)
         j = 1
-        print 'parsing mailbox ' + PATH_NAME
-        print 'mailbox ' + PATH_NAME + ' has ' + str(numMail) + ' elements'
+        #print 'parsing mailbox ' + PATH_NAME
+        #print 'mailbox ' + PATH_NAME + ' has ' + str(numMail) + ' elements'
         for message in mbox:
             ID = message['Message-ID']
 
             for x in message.items():
                 doc = {
                     'mailID': ID,
-                    x[0]: x[1],
+                    x[0].replace(".",""): x[1],
                 }
                 dbmanager.push('forensic_db', 'mails', doc)
                 #es.index(index='forensic_db', doc_type='mails', body=doc)
@@ -57,7 +57,7 @@ def fileParse(PATH_NAME,extension):
                 print('Parsed ' + str(j) + " mails of " + str(numMail) + ' for mailbox ' + PATH_NAME)
             j = j + 1
 
-    print 'Mails parsed.'
+    #print 'Mails parsed.'
     return 0
 
 
@@ -113,8 +113,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
             dbmanager.push('forensic_db', 'mails', doc)
             #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
-            print 'error with Mail plain: '
-            print ID
+            #print 'error with Mail plain: '
+            #print ID
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
@@ -134,8 +134,8 @@ def parseMailAttachment(ID, PATH_NAME, part):
             dbmanager.push('forensic_db', 'mails', doc)
             #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
-            print 'error with Mail html: '
-            print ID
+            #print 'error with Mail html: '
+            #print ID
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
@@ -149,16 +149,14 @@ def parseMailAttachment(ID, PATH_NAME, part):
         #nothing to do. The content is duplicated
         pass
     else:
-        path = PATH_NAME + '/' + str(ID) + '/' + str(name)
-        data = part.get_payload()
-        decodedData = data.decode('base64')
-        ###
-        temp = tempfile.NamedTemporaryFile()
-        temp.write(decodedData)
-        temp.seek(0)
         try:
-            #print 'temp:', temp
-            #print 'temp.name:', temp.name
+            path = PATH_NAME + '/' + str(ID) + '/' + str(name)
+            data = part.get_payload()
+            decodedData = data.decode('base64')
+            ###
+            temp = tempfile.NamedTemporaryFile()
+            temp.write(decodedData)
+            temp.seek(0)
             p1 = subprocess.Popen(["exiftool", temp.name], stdout=subprocess.PIPE)
             result = p1.communicate()[0]
             tokens = result.split('\n')
@@ -169,12 +167,22 @@ def parseMailAttachment(ID, PATH_NAME, part):
                     output = token.split(':', 1)
                     doc = {
                         "filePath": path,
-                        output[0].strip(" "): output[1].strip(" ")
+                        output[0].strip(" ").replace(".",""): output[1].strip(" "),
                     }
                     dbmanager.push('forensic_db', 'file-metadata', doc)
+        except:
+            path = PATH_NAME + '/' + str(ID) + '/' + str(name)
+            doc = {
+                "filePath": path,
+                "exception": "Problem with file parsing",
+            }
+            dbmanager.push('forensic_db', 'exception', doc)
         finally:
             # Automatically cleans up the file
-            temp.close()
+            try:
+                temp.close()
+            except:
+                pass
 
 
 def uploadDatabaseZip(path, compressSize, createSystem, dateTime, externalAttr, fileName, fileSize,

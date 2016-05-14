@@ -6,7 +6,7 @@ import dbManager
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/Forensic/TEST FILE METADATA'
+walkpath='/home/valerio'
 
 if __name__ == '__main__':
 

@@ -15,15 +15,15 @@ def fileParse(PATH_NAME,mime):
     # Now process the result, getting the lines with values
     tokens = result.split('\n')
     # print tokens
-    print 'File metadata---------------------------------------------'
+    #print 'File metadata---------------------------------------------'
     for token in tokens:
         if token != '':
             output = token.split(':', 1)
-            print output[0].strip(" ")
-            print output[1].strip(" ")
+            #print output[0].strip(" ")
+            #print output[1].strip(" ")
             doc = {
                 "filePath": PATH_NAME,
-                output[0].strip(" "): output[1].strip(" ")
+                output[0].strip(" ").replace(".",""): output[1].strip(" ")
             }
             dbmanager.push('forensic_db','file-metadata',doc)
             #es.index(index='forensic_db', doc_type='file-metadata', body=doc)

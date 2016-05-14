@@ -40,7 +40,7 @@ class Walker:
 
     # fname is a path to the desired file.
     def getFileSystemMetaData(self, fname):
-        print '***************'
+        #print '***************'
 
         # Get mime type of the file
         p1 = subprocess.Popen(["xdg-mime", "query", "filetype", fname],stdout=subprocess.PIPE)
@@ -53,14 +53,14 @@ class Walker:
         accessTime = time.ctime(atime)
         createdTime = time.ctime(ctime)
         fileHash = hashlib.md5(open(fname, 'rb').read()).hexdigest()
-        print 'relative path: ' + fname
-        print 'extension: ' + str(os.path.splitext(fname)[1])
-        print 'mime type: ' + mime
-        print 'size: '+ str(size)
-        print 'modifiedTime: ' + str(modifiedTime)
-        print 'accessTime: ' + str(accessTime)
-        print 'createdTime: ' + str(createdTime)
-        print 'hash: ' + str(fileHash)
+        # print 'relative path: ' + fname
+        # print 'extension: ' + str(os.path.splitext(fname)[1])
+        # print 'mime type: ' + mime
+        # print 'size: '+ str(size)
+        # print 'modifiedTime: ' + str(modifiedTime)
+        # print 'accessTime: ' + str(accessTime)
+        # print 'createdTime: ' + str(createdTime)
+        # print 'hash: ' + str(fileHash)
 
         #Loading into kibana
         doc = {
@@ -100,6 +100,12 @@ class Walker:
 
         doc = {
             "filePath": fname,
+            "accessTime": str(createdTime)
+        }
+        self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+
+        doc = {
+            "filePath": fname,
             "createdTime": str(fileHash)
         }
         self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
@@ -125,6 +131,7 @@ class Walker:
             if self.dim_counter + dimNextFileToParse > BREACKPOINT_DIMENSION * 1000000:
                 self.log.info('[BREAKPOINT] #' + fname)
                 self.dim_counter = 0;
+                print 'BREAKPOINT SETTED'
             else:
                 self.dim_counter = self.dim_counter + dimNextFileToParse
         self.parser.parse(mime, fname)

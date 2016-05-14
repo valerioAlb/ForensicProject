@@ -1,14 +1,17 @@
-#application/zip
+#application/zip application/x-compressed-tar application/x-rar
 import subprocess
 import sys
 import importlib
+import scriptParseGenericFile
 import os
 sys.path.insert(0, '../')
 
 def fileParse(PATH_NAME,extension):
 
+    scriptParseGenericFile.fileParse(PATH_NAME,extension)
+
     base = os.path.basename(PATH_NAME)
-    dirTemp = "/media/valerio/temp/"+base
+    dirTemp = "/home/valerio/temp/"+base
 
     parser = importlib.import_module("fileParserClass")
     walker = importlib.import_module("walkerClass")

@@ -42,6 +42,6 @@ class FileParser:
             lib.fileParse(fname,mime)
 
         else:
-            print "Use generic Parser"
+            #print "Use generic Parser"
             lib = importlib.import_module(self.dict['file/generic'])
             lib.fileParse(fname, mime)
