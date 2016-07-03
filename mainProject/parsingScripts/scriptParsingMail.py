@@ -2,17 +2,14 @@
 from email.parser import Parser
 import mailbox
 import rarfile
-import tempfile
 import zipfile
 import io
 import importlib
-import subprocess
 import sys
 sys.path.insert(0, '../')
 
 dbManager = importlib.import_module("dbManager")
-dbmanager = dbManager.Manager()
-#es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+dbmanager = dbManager.dbManager.get_instance()
 
 def fileParse(PATH_NAME,extension,realPath=""):
 
@@ -22,20 +19,37 @@ def fileParse(PATH_NAME,extension,realPath=""):
         path = realPath
 
     if extension == 'message/rfc822':
+        actions = []
+
         message = Parser().parse(open(PATH_NAME, 'r'))
         ID = message['Message-ID']
-        doc = {
-            'mailID': ID,
-            'filePath': path,
-        }
-        dbmanager.push('forensic_db', 'mails', doc)
-        for x in message.items():
-            doc = {
+
+        action = {
+            "_index": "forensic_db",
+            "_type": "file-metadata",
+            "_source": {
                 'mailID': ID,
-                x[0].replace(".",""): x[1],
+                'filePath': path,
             }
-            dbmanager.push('forensic_db','mails',doc)
-            #es.index(index='forensic_db', doc_type='mails', body=doc)
+
+        }
+
+        actions.append(action)
+        for x in message.items():
+
+            action = {
+                "_index": "forensic_db",
+                "_type": "mail",
+                "_source": {
+                    'mailID': ID,
+                    x[0].replace(".","_"): x[1],
+                }
+
+            }
+
+            actions.append(action)
+
+        dbmanager.bulk(actions)
 
         for part in message.walk():
             parseMailAttachment(ID, PATH_NAME, part, realPath)
@@ -45,24 +59,46 @@ def fileParse(PATH_NAME,extension,realPath=""):
         mbox = mailbox.mbox(PATH_NAME)
         numMail = len(mbox)
         j = 1
-        #print 'parsing mailbox ' + PATH_NAME
-        #print 'mailbox ' + PATH_NAME + ' has ' + str(numMail) + ' elements'
+        print 'parsing mailbox ' + PATH_NAME
+        print 'mailbox ' + PATH_NAME + ' has ' + str(numMail) + ' elements'
         for message in mbox:
+            actions = []
+
             ID = message['Message-ID']
 
-            for x in message.items():
-                doc = {
+            action = {
+                "_index": "forensic_db",
+                "_type": "file-metadata",
+                "_source": {
                     'mailID': ID,
-                    x[0].replace(".",""): x[1],
+                    'filePath': path,
                 }
-                dbmanager.push('forensic_db', 'mails', doc)
-                #es.index(index='forensic_db', doc_type='mails', body=doc)
+
+            }
+
+            actions.append(action)
+
+            for x in message.items():
+                action = {
+                    "_index": "forensic_db",
+                    "_type": "mail",
+                    "_source": {
+                        'mailID': ID,
+                        x[0].replace(".", "_"): x[1],
+                    }
+
+                }
+
+                actions.append(action)
+
+            dbmanager.bulk(actions)
 
             #From now on we consider the mail attachments
 
             for part in message.walk():
                 parseMailAttachment(ID,PATH_NAME,part, realPath)
 
+            print 'Parse message', j
             if (j % 100 == 0):
                 print('Parsed ' + str(j) + " mails of " + str(numMail) + ' for mailbox ' + PATH_NAME)
             j = j + 1
@@ -88,18 +124,25 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
         f = io.BytesIO(decodedData)
         archive = zipfile.ZipFile(f)
         for file in archive.infolist():
-            #path = os.path.join(PATH_NAME,ID,name,file.filename)
+            properties = {}
+
             filePath = path + '/' + str(ID) + '/' + str(name)+'/'+str(file.filename)
             zipFileName = file.filename
+            properties["zipFileName"] = zipFileName
             zipFileSize = file.file_size
+            properties["zipFileSize"] = zipFileSize
             zipCompressSize = file.compress_size
+            properties["zipCompressSize"] = zipCompressSize
             zipCreateSystem = file.create_system
+            properties["zipCreateSystem"] = zipCreateSystem
             zipInternalAttr = file.internal_attr
+            properties["zipInternalAttr"] = zipInternalAttr
             zipExternalAttr = file.external_attr
+            properties["zipExternalAttr"] = zipExternalAttr
             zipDateTime = file.date_time
+            properties["zipDateTime"] = zipDateTime
 
-            uploadDatabaseZip(filePath, zipCompressSize, zipCreateSystem, zipDateTime, zipExternalAttr,
-                           zipFileName, zipFileSize, zipInternalAttr)
+            uploadDatabase(properties,filePath)
 
         f.close()
     elif ftype == 'application/rar':
@@ -108,14 +151,20 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
         f = io.BytesIO(decodedData)
         archive = rarfile.RarFile(f)
         for file in archive.infolist():
-            #path = os.path.join(PATH_NAME, ID, name, file.filename)
+            properties = {}
+
             filePath = path + '/' + str(ID) + '/' + str(name) + '/' + str(file.filename)
             rarFileName = file.filename
+            properties["rarFileName"] = rarFileName
             rarFileSize = file.file_size
+            properties["rarFileSize"] = rarFileSize
             rarCompressSize = file.compress_size
+            properties["rarCompressSize"] = rarCompressSize
             rarDateTime = file.date_time
+            properties["rarDateTime"] = rarDateTime
 
-            uploadDatabaseRar(filePath, rarCompressSize, rarDateTime, rarFileName, rarFileSize)
+            uploadDatabase(properties,filePath)
+
         f.close()
 
     elif ftype == 'text/plain':
@@ -127,17 +176,14 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
         }
         try:
             dbmanager.push('forensic_db', 'mails', doc)
-            #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
-            #print 'error with Mail plain: '
-            #print ID
+
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
                 'payload': temp,
             }
             dbmanager.push('forensic_db', 'mails', doc)
-            #es.index(index='forensic_db', doc_type='mails', body=doc)
 
     elif ftype == 'text/html':
         filePath = path + '/' + str(ID)
@@ -148,17 +194,14 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
         }
         try:
             dbmanager.push('forensic_db', 'mails', doc)
-            #es.index(index='forensic_db', doc_type='mails', body=doc)
         except:
-            #print 'error with Mail html: '
-            #print ID
+
             temp = unicode(body, errors='ignore')
             doc = {
                 'mailID': ID,
                 'payload': temp,
             }
             dbmanager.push('forensic_db', 'mails', doc)
-            #es.index(index='forensic_db', doc_type='mails', body=doc)
 
 
     elif 'multipart/' in ftype:
@@ -167,112 +210,74 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
     else:
         try:
             filePath = path + '/' + str(ID) + '/' + str(name)
-            data = part.get_payload()
-            decodedData = data.decode('base64')
-            ###
-            temp = tempfile.NamedTemporaryFile()
-            temp.write(decodedData)
-            temp.seek(0)
-            p1 = subprocess.Popen(["exiftool", temp.name], stdout=subprocess.PIPE)
-            result = p1.communicate()[0]
-            tokens = result.split('\n')
-            # print tokens
-            #print 'File metadata---------------------------------------------'
-            for token in tokens:
-                if token != '':
-                    output = token.split(':', 1)
-                    doc = {
-                        "filePath": filePath,
-                        output[0].strip(" ").replace(".",""): output[1].strip(" "),
-                    }
-                    dbmanager.push('forensic_db', 'file-metadata', doc)
-        except:
-            path = PATH_NAME + '/' + str(ID) + '/' + str(name)
             doc = {
                 "filePath": filePath,
+                "mail": "File inside mail",
+            }
+            dbmanager.push('forensic_db', 'exception', doc)
+            # print 'Parsing mail content',filePath
+            # data = part.get_payload()
+            # decodedData = data.decode('base64')
+            # ###
+            # temp = tempfile.NamedTemporaryFile()
+            # temp.write(decodedData)
+            # temp.seek(0)
+            # p1 = subprocess.Popen(["exiftool", temp.name], stdout=subprocess.PIPE)
+            # result = p1.communicate()[0]
+            # tokens = result.split('\n')
+            # # print tokens
+            # #print 'File metadata---------------------------------------------'
+            #
+            # actions = []
+            #
+            # for token in tokens:
+            #     if token != '':
+            #         output = token.split(':', 1)
+            #
+            #         action = {
+            #             "_index": "forensic_db",
+            #             "_type": "mail",
+            #             "_source": {
+            #                 'filePath': filePath,
+            #                 output[0].strip(" ").replace(".", "_"): output[1].strip(" "),
+            #             }
+            #
+            #         }
+            #
+            #         actions.append(action)
+            #
+            #     dbmanager.bulk(actions)
+        except:
+            print 'Problem with file parsing in a mail'
+            path = PATH_NAME + '/' + str(ID) + '/' + str(name)
+            doc = {
+                "filePath": path,
                 "exception": "Problem with file parsing",
             }
             dbmanager.push('forensic_db', 'exception', doc)
-        finally:
-            # Automatically cleans up the file
-            try:
-                temp.close()
-            except:
-                pass
+        # finally:
+        #     # Automatically cleans up the file
+        #     try:
+        #         temp.close()
+        #     except:
+        #         pass
 
 
-def uploadDatabaseZip(path, compressSize, createSystem, dateTime, externalAttr, fileName, fileSize,
-                   internalAttr):
-    doc = {
-        'filePath': path,
-        'size': fileSize,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'compressSize': compressSize,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'createSystem': createSystem,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'fileName': fileName,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'internalAttr': internalAttr,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'externalAttr': externalAttr,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'dateTime': dateTime,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+def uploadDatabase(properties,path):
 
+    actions = []
 
-def uploadDatabaseRar(path, compressSize, dateTime, fileName, fileSize):
+    for key, value in properties.iteritems():
+        action = {
+            "_index": "forensic_db",
+            "_type": "file-system-metadata",
+            "_source": {
+                "filePath": path,
+                key: value
+            }
 
-    doc = {
-        'filePath': path,
-        'size': fileSize,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
-    doc = {
-        'filePath': path,
-        'compressSize': compressSize,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        }
 
-    doc = {
-        'filePath': path,
-        'fileName': fileName,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+        actions.append(action)
 
-
-    doc = {
-        'filePath': path,
-        'dateTime': dateTime,
-    }
-    dbmanager.push('forensic_db', 'file-system-metadata', doc)
-    #es.index(index='forensic_db', doc_type='file-system-metadata', body=doc)
+    dbmanager.bulk(actions)

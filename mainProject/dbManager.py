@@ -1,8 +1,22 @@
 import elasticsearch
-import logging
+from elasticsearch import helpers
 
-class Manager:
+class dbManager(object):
+
+    INSTANCE = None
     es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+
+    def __init__(self):
+        if self.INSTANCE is not None:
+            raise ValueError("An instantiation already exist!")
+
+
+    @classmethod
+    def get_instance(cls):
+        if cls.INSTANCE is None:
+            cls.INSTANCE = dbManager()
+        return cls.INSTANCE
+
 
     def push(self,index,doc_type,body):
 
@@ -19,6 +33,6 @@ class Manager:
         #print "Record pushed to elasticsearch"
 
 
-    def getManager(self):
-        return Manager
-
+    def bulk(self,actions):
+        if len(actions) > 0:
+            helpers.bulk(self.es,actions)

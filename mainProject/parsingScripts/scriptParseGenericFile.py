@@ -4,33 +4,39 @@ import importlib
 import sys
 sys.path.insert(0, '../')
 
+
 def fileParse(PATH_NAME,mime,realPath=""):
 
-    if realPath =="":
+    if realPath == "":
         path = PATH_NAME
     else:
-        path=realPath
+        path = realPath
 
     dbManager = importlib.import_module("dbManager")
-    dbmanager = dbManager.Manager()
-    #es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+    dbmanager = dbManager.dbManager.get_instance()
 
     p1 = subprocess.Popen(["exiftool", PATH_NAME], stdout=subprocess.PIPE)
     result = p1.communicate()[0]
     # Now process the result, getting the lines with values
     tokens = result.split('\n')
-    # print tokens
-    #print 'File metadata---------------------------------------------'
+
+    actions = []
+
     for token in tokens:
         if token != '':
             output = token.split(':', 1)
-            #print output[0].strip(" ")
-            #print output[1].strip(" ")
-            doc = {
-                "filePath": path,
-                output[0].strip(" ").replace(".",""): output[1].strip(" ")
-            }
-            dbmanager.push('forensic_db','file-metadata',doc)
-            #es.index(index='forensic_db', doc_type='file-metadata', body=doc)
+            action = {
+                "_index": "forensic_db",
+                "_type": "file-metadata",
+                "_source": {
+                    "filePath": path,
+                    output[0].strip(" ").replace(".", "_"): unicode(output[1].strip(" "), errors='ignore')
+                }
 
-    return 0;
+            }
+
+            actions.append(action)
+
+    dbmanager.bulk(actions)
+
+    return 0

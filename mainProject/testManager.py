@@ -1,6 +1,6 @@
 import dbManager
 
-dbmanager = dbManager.Manager()
+dbmanager = dbManager.dbManager()
 
 index = "forensic_db"
 doc_type = "prova inserimento"

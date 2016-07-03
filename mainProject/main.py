@@ -3,10 +3,11 @@ import fileParserClass
 import logging
 import os
 import dbManager
+from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/Forensic/TEST FILE METADATA/'
+walkpath='/home/valerio/Documenti/Forensic/TEST'
 
 if __name__ == '__main__':
 
@@ -14,8 +15,7 @@ if __name__ == '__main__':
 
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
-
-    dbmanager = dbManager.Manager()
+    dbmanager = dbManager.dbManager.get_instance()
 
     breackpointFile = '###'
 
@@ -30,7 +30,9 @@ if __name__ == '__main__':
                 elif line.split(' ')[4] == '[END]':
                     breackpointFile = '###'
 
-    print breackpointFile
+    print 'Breackpoint founded: ',breackpointFile
+    sleep(3)
+    print 'Program Started'
     logging.info('[START] Program Started')
 
     methodClass = walkerClass.Walker(parser,breackpointFile)
