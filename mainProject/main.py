@@ -7,7 +7,7 @@ from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/Forensic/TEST'
+walkpath='/home/valerio/Documenti/MailTest'
 
 if __name__ == '__main__':
 

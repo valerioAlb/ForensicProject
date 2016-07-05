@@ -55,6 +55,9 @@ class Walker:
         mime = p1.communicate()[0]
         mime = str(mime).strip()
 
+        if os.path.splitext(fname)[1] == ".pst":
+            mime = "application/pst"
+
         properties['mime']=mime
 
         # Get filesystem meta-data+hash
@@ -78,7 +81,6 @@ class Walker:
         # print 'createdTime: ' + str(createdTime)
         # print 'hash: ' + str(fileHash)
 
-        #Loading into kibana
 
         if comingPath == "":
             realPath=fname
