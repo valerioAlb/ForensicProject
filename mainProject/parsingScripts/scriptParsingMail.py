@@ -37,24 +37,26 @@ def fileParse(PATH_NAME,extension,realPath=""):
 
     if extension == 'application/pst':
 
-        print 'Conversion of file PST: '+ PATH_NAME
-        convert_pst_to_mbox(PATH_NAME,OUTPUT_PATH)
-        print 'Conversion ended'
-
-        for root, dirs, files in os.walk(OUTPUT_PATH):
-
-            for file in files:
-                fname = os.path.join(root, file)
-                if os.path.isfile(fname):
-                    print 'Analizing mailbox: ' + fname
-
-                    parseMailBox(fname, PATH_NAME + file , PATH_NAME + file)
-
-        subprocess.call(['rm', '-rf', OUTPUT_PATH + '/*'])
+        parsePST(PATH_NAME)
 
     print 'All Mails parsed.'
 
     return 0
+
+
+def parsePST(PATH_NAME):
+    print 'Conversion of file PST: ' + PATH_NAME
+    convert_pst_to_mbox(PATH_NAME, OUTPUT_PATH)
+    print 'Conversion ended'
+    for root, dirs, files in os.walk(OUTPUT_PATH):
+
+        for file in files:
+            fname = os.path.join(root, file)
+            if os.path.isfile(fname):
+                print 'Analizing mailbox: ' + fname
+
+                parseMailBox(fname, PATH_NAME + file, PATH_NAME + file)
+    subprocess.call(['rm', '-rf', OUTPUT_PATH + '/*'])
 
 
 def parseMailBox(PATH_NAME, path, realPath):

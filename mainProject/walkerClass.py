@@ -27,19 +27,19 @@ class Walker:
     # retrieve all the files inside.
 
     #The comingPath variable (if setted) is useful to not forget the archive filePath we are exploring.
-    def WalkPath(self,rootPath,comingPath=""):
+    def WalkPath(self,rootPath,comingPath="",recursiveFlag=""):
         for root, dirs, files in os.walk(rootPath):
             for file in files:
                 fname = os.path.join(root, file)
                 if os.path.isfile(fname):
                     # Now we have to perform some operation, like compute an hash, get metadata, if is a final file,
                     # or go deeper, if it is a compressed file.
-                    self.getFileSystemMetaData(fname,comingPath)
+                    self.getFileSystemMetaData(fname,comingPath,recursiveFlag)
 
 
 
     # fname is a path to the desired file.
-    def getFileSystemMetaData(self, fname, comingPath=""):
+    def getFileSystemMetaData(self, fname, comingPath="",recursiveFlag=""):
         #print '***************'
         if self.breackpointFile == '###':
             self.breackpointVar = 0
@@ -104,13 +104,17 @@ class Walker:
             actions.append(action)
 
         self.dbmanager.bulk(actions)
-
-        if comingPath == "":
-            self.getFileMetadata(mime, fname)
+        if recursiveFlag == "":
+            if comingPath == "":
+                self.getFileMetadata(mime, fname)
+            else:
+                self.getFileMetadata(mime, fname, realPath)
         else:
-            self.getFileMetadata(mime, fname, realPath)
-
-
+            doc = {
+                    "filePath": realPath,
+                    "exception": "File-Metadata of file inside archive not retrieved"
+            }
+            self.dbmanager.push('forensic_db','exception',doc)
 
 
 

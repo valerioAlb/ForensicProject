@@ -25,9 +25,9 @@ def fileParse(PATH_NAME,extension, realPath=""):
     parser = parser.FileParser()
     methodClass = walker.Walker(parser,'###')
     if realPath=="":
-        methodClass.WalkPath(dirTemp,PATH_NAME)
+        methodClass.WalkPath(dirTemp,PATH_NAME,"archive")
     else:
-        methodClass.WalkPath(dirTemp, realPath)
+        methodClass.WalkPath(dirTemp, realPath,"archive")
 
 
     #Umount the file
