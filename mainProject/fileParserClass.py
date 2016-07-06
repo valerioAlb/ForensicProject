@@ -12,12 +12,15 @@ class FileParser:
     # The dict variable contains all the couples "mime-type / script able to parse it"
     dict = {}
 
-    #You have to put all the script in the specified folder "scriptFolderPath"
-    #The first line should be a comment with the list of all mime-types supported
-    #Example: #application/mbox message/rfc
+    # You have to put all the script in the specified folder "scriptFolderPath"
+    # The first line should be a comment with the list of all mime-types supported
+    # Example: #application/mbox message/rfc
+
     def __init__(self):
         self.initialization()
 
+    # Goes to folder specified containing scripts, and retrieve them. Save in a dictionary all the formats
+    # supported.
     def initialization(self):
             for root, dirs, files in os.walk(scriptFolderPath):
                 for file in files:
@@ -34,6 +37,7 @@ class FileParser:
         for i in self.dict:
             print '"'+i+'" parsed with the script: "'+ self.dict[i]+'"'
 
+    # Method used to parse a file. If it has a supported type, then use the specific parser, else use a generic one.
     def parse(self,mime,fname,realPath=""):
 
         if mime in self.dict.keys():
@@ -42,6 +46,6 @@ class FileParser:
             lib.fileParse(fname,mime,realPath)
 
         else:
-            #print "Use generic Parser"
+            # print "Use generic Parser"
             lib = importlib.import_module(self.dict['file/generic'])
             lib.fileParse(fname, mime,realPath)

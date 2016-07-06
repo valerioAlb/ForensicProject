@@ -3,16 +3,16 @@ import fileParserClass
 import logging
 import os
 import dbManager
+import utils
 from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/'
+walkpath='/media/valerio/HD2/Backup/Download'
 
 if __name__ == '__main__':
 
     logging.basicConfig(filename='./LOG.log',level=logging.INFO,format=' [%(levelname)s] %(asctime)s %(message)s')
-    #logging.getLogger('elasticsearch').addHandler(logging.NullHandler())
 
     ###################################################################
     es_logger = logging.getLogger('elasticsearch')
@@ -47,7 +47,13 @@ if __name__ == '__main__':
 
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
+
+    # Initialize the dbManager that will be used in the program
     dbmanager = dbManager.dbManager.get_instance()
+
+    util = utils.utils.get_instance()
+    # By default the recursive level on archives is 1
+    util.setMaxRecursionLevel(1)
 
     breackpointFile = '###'
 
@@ -63,6 +69,8 @@ if __name__ == '__main__':
                     breackpointFile = '###'
 
     print 'Breackpoint founded: ',breackpointFile
+
+    # Pause before continuing with the program
     sleep(3)
     print 'Program Started'
     logging.info('[START] Program Started')

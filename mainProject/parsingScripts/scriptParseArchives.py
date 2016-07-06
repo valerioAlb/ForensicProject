@@ -6,9 +6,21 @@ import scriptParseGenericFile
 import os
 sys.path.insert(0, '../')
 
+utils = importlib.import_module("utils")
+util = utils.utils.get_instance()
+
 def fileParse(PATH_NAME,extension, realPath=""):
 
+    if realPath == "":
+        realPath = PATH_NAME
+
     scriptParseGenericFile.fileParse(PATH_NAME,extension)
+
+    a = util.setRecursion()
+
+    if a == 0:
+        print 'Stop recursion'
+        return
 
     base = os.path.basename(PATH_NAME)
     dirTemp = "/home/valerio/temp/"+base
@@ -19,18 +31,21 @@ def fileParse(PATH_NAME,extension, realPath=""):
     # Mount the file
     p1 = subprocess.Popen(["mkdir",dirTemp],stdout=subprocess.PIPE)
     p1.communicate()
+    print 'Mounting the archive : '+ realPath
+
     p1 = subprocess.Popen(["archivemount","-o","readonly",PATH_NAME, dirTemp], stdout=subprocess.PIPE)
     p1.communicate()
+    print 'Archive mounted.'
 
     parser = parser.FileParser()
     methodClass = walker.Walker(parser,'###')
     if realPath=="":
-        methodClass.WalkPath(dirTemp,PATH_NAME,"archive")
+        methodClass.WalkPath(dirTemp,PATH_NAME)
     else:
-        methodClass.WalkPath(dirTemp, realPath,"archive")
+        methodClass.WalkPath(dirTemp, realPath)
 
 
-    #Umount the file
+    # In the end umount the file
     p1 = subprocess.Popen(["umount",dirTemp], stdout=subprocess.PIPE)
     p1.communicate()
     p1 = subprocess.Popen(["rmdir",dirTemp], stdout=subprocess.PIPE)

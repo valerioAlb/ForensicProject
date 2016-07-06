@@ -23,24 +23,25 @@ class Walker:
 
         self.breackpointFile=breackpointFile
         self.parser=parser
+
     # To analyze the content of a folder, call this method and pass the path of a folder. It will automatically
     # retrieve all the files inside.
 
-    #The comingPath variable (if setted) is useful to not forget the archive filePath we are exploring.
+    # The comingPath variable (if setted ) is useful to not forget the archive filePath we are exploring.
     def WalkPath(self,rootPath,comingPath="",recursiveFlag=""):
         for root, dirs, files in os.walk(rootPath):
             for file in files:
                 fname = os.path.join(root, file)
                 if os.path.isfile(fname):
+
                     # Now we have to perform some operation, like compute an hash, get metadata, if is a final file,
                     # or go deeper, if it is a compressed file.
-                    self.getFileSystemMetaData(fname,comingPath,recursiveFlag)
-
-
+                    self.getFileSystemMetaData(fname,comingPath)
 
     # fname is a path to the desired file.
-    def getFileSystemMetaData(self, fname, comingPath="",recursiveFlag=""):
-        #print '***************'
+    def getFileSystemMetaData(self, fname, comingPath=""):
+
+        # Check if some file should not be analized.
         if self.breackpointFile == '###':
             self.breackpointVar = 0
         elif self.breackpointVar == 1 and self.breackpointFile != fname:
@@ -50,17 +51,19 @@ class Walker:
             self.breackpointVar = 0
 
         properties = {}
-         # Get mime type of the file
+
+        # Get mime type of the file.
         p1 = subprocess.Popen(["xdg-mime", "query", "filetype", fname],stdout=subprocess.PIPE)
         mime = p1.communicate()[0]
         mime = str(mime).strip()
 
+        # Check for the file extension, useful to understand if it is a pst.
         if os.path.splitext(fname)[1] == ".pst":
             mime = "application/pst"
 
         properties['mime']=mime
 
-        # Get filesystem meta-data+hash
+        # Get filesystem meta-data + hash
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(fname)
         modifiedTime = time.ctime(mtime)
         properties['modifiedTime']=modifiedTime
@@ -81,7 +84,6 @@ class Walker:
         # print 'createdTime: ' + str(createdTime)
         # print 'hash: ' + str(fileHash)
 
-
         if comingPath == "":
             realPath=fname
         else:
@@ -89,6 +91,7 @@ class Walker:
 
         actions=[]
 
+        # Build the action[] list to post to database
         for key,value in properties.iteritems():
 
             action = {
@@ -104,29 +107,14 @@ class Walker:
             actions.append(action)
 
         self.dbmanager.bulk(actions)
-        if recursiveFlag == "":
-            if comingPath == "":
-                self.getFileMetadata(mime, fname)
-            else:
-                self.getFileMetadata(mime, fname, realPath)
+
+
+        if comingPath == "":
+            self.getFileMetadata(mime, fname)
         else:
-            actions = []
-            action = {
-                "_index": "forensic_db",
-                "_type": "exception",
-                "_source": {
-                    "filePath": realPath,
-                    "exception": "File-Metadata of file inside archive not retrieved",
-                }
+            self.getFileMetadata(mime, fname, realPath)
 
-            }
-
-            actions.append(action)
-
-            self.dbmanager.bulk(actions)
-
-
-
+    # Method used to get file-metadata
     def getFileMetadata(self,mime,fname,path=""):
 
         if path == "":
@@ -135,7 +123,9 @@ class Walker:
             filepath = path
 
         dimNextFileToParse = os.path.getsize(fname)
+
         if "/media/temp/" not in fname:
+
             # dimension in Byte
             if self.dim_counter + dimNextFileToParse > BREACKPOINT_DIMENSION * 1000000:
                 self.log.info('[BREAKPOINT] #' + fname)
@@ -144,9 +134,11 @@ class Walker:
             else:
                 self.dim_counter = self.dim_counter + dimNextFileToParse
         try:
-            print 'Parsing the file',fname
+            print 'Parsing the file',filepath
             self.parser.parse(mime, fname, path)
         except Exception,e:
+
+            # Error while parsing the file
             actions = []
             print str(e)
             print 'exception in getFileMetadata! for file',fname
