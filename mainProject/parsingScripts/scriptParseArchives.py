@@ -23,7 +23,11 @@ def fileParse(PATH_NAME,extension, realPath=""):
         return
 
     base = os.path.basename(PATH_NAME)
-    dirTemp = "/home/valerio/temp/"+base
+
+    if not os.path.exists(util.getTempDirArchives()):
+        os.mkdir(util.getTempDirArchives())
+
+    dirTemp = util.getTempDirArchives()+base
 
     parser = importlib.import_module("fileParserClass")
     walker = importlib.import_module("walkerClass")

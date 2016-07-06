@@ -15,7 +15,10 @@ sys.path.insert(0, '../')
 dbManager = importlib.import_module("dbManager")
 dbmanager = dbManager.dbManager.get_instance()
 
-OUTPUT_PATH = '/home/valerio/Documenti/Forensic/tempDir'
+utils = importlib.import_module("utils")
+util = utils.utils.get_instance()
+
+OUTPUT_PATH = util.getTempDirArchives()
 
 def fileParse(PATH_NAME,extension,realPath=""):
 
@@ -37,20 +40,23 @@ def fileParse(PATH_NAME,extension,realPath=""):
         parseMailBox(PATH_NAME, path, realPath)
 
     if extension == 'application/pst':
-        os.mkdir(OUTPUT_PATH)
-        parsePST(PATH_NAME)
-        shutil.rmtree(OUTPUT_PATH)
+
+        tempDir = OUTPUT_PATH + os.path.basename(PATH_NAME) + "_pst"
+        if not os.path.exists(tempDir):
+            os.mkdir(tempDir)
+        parsePST(PATH_NAME,tempDir)
+        p1 = subprocess.Popen(["rm","-r", tempDir], stdout=subprocess.PIPE)
+        p1.communicate()
 
     print 'All Mails parsed.'
 
     return 0
 
 
-def parsePST(PATH_NAME):
+def parsePST(PATH_NAME,tempDir):
     print 'Conversion of file PST: ' + PATH_NAME
-    convert_pst_to_mbox(PATH_NAME, OUTPUT_PATH)
-    print 'Conversion ended'
-    for root, dirs, files in os.walk(OUTPUT_PATH):
+    convert_pst_to_mbox(PATH_NAME, tempDir)
+    for root, dirs, files in os.walk(tempDir):
         for file in files:
             fname = os.path.join(root, file)
             if os.path.isfile(fname):
@@ -322,4 +328,6 @@ def uploadDatabase(properties,path):
     dbmanager.bulk(actions)
 
 def convert_pst_to_mbox(pstfilename, outputfolder):
+    print 'Starting conversion into folder '+outputfolder+ ' of the PST: '+pstfilename
     subprocess.call(['readpst', '-o', outputfolder, '-D', '-q', pstfilename])
+    print 'Conversion done'

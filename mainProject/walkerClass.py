@@ -2,15 +2,14 @@ import os
 import time
 import hashlib
 import subprocess
+import utils
 import logging
 import dbManager
-
-# Dimension expressed in megabytes
-BREACKPOINT_DIMENSION = 100
 
 class Walker:
 
     dbmanager = dbManager.dbManager.get_instance()
+    util = utils.utils.get_instance()
 
 
     log = logging.getLogger("main.walkerClass")
@@ -18,10 +17,9 @@ class Walker:
     breackpointVar = 1
     dim_counter = 0
 
+    def __init__(self, parser, breakpointFile):
 
-    def __init__(self,parser,breackpointFile):
-
-        self.breackpointFile=breackpointFile
+        self.breakpointFile=breakpointFile
         self.parser=parser
 
     # To analyze the content of a folder, call this method and pass the path of a folder. It will automatically
@@ -42,9 +40,9 @@ class Walker:
     def getFileSystemMetaData(self, fname, comingPath=""):
 
         # Check if some file should not be analized.
-        if self.breackpointFile == '###':
+        if self.breakpointFile == '###':
             self.breackpointVar = 0
-        elif self.breackpointVar == 1 and self.breackpointFile != fname:
+        elif self.breackpointVar == 1 and self.breakpointFile != fname:
             print fname,' Skipped'
             return
         else:
@@ -71,8 +69,8 @@ class Walker:
         properties['accessTime']=accessTime
         createdTime = time.ctime(ctime)
         properties['createdTime']=createdTime
-        fileHash = hashlib.md5(open(fname, 'rb').read()).hexdigest()
-        properties['fileHash']=fileHash
+        #fileHash = hashlib.md5(open(fname, 'rb').read()).hexdigest()
+        #properties['fileHash']=fileHash
         properties['size'] = size
         properties['extension'] = str(os.path.splitext(fname)[1])
         # print 'relative path: ' + fname
@@ -83,6 +81,7 @@ class Walker:
         # print 'accessTime: ' + str(accessTime)
         # print 'createdTime: ' + str(createdTime)
         # print 'hash: ' + str(fileHash)
+
 
         if comingPath == "":
             realPath=fname
@@ -105,7 +104,6 @@ class Walker:
             }
 
             actions.append(action)
-
         self.dbmanager.bulk(actions)
 
 
@@ -124,15 +122,15 @@ class Walker:
 
         dimNextFileToParse = os.path.getsize(fname)
 
-        if "/media/temp/" not in fname:
+        # Not place breakpoints inside archives
+        if self.util.getTempDirArchives() not in fname:
 
-            # dimension in Byte
-            if self.dim_counter + dimNextFileToParse > BREACKPOINT_DIMENSION * 1000000:
-                self.log.info('[BREAKPOINT] #' + fname)
-                self.dim_counter = 0;
+            # Check if a breakpoint should be placed before parsing the file
+            a = self.util.checkBreakPoint(dimNextFileToParse)
+            if a == 0:
+                self.log.info('[BREAKPOINT] #' + filepath)
                 print 'BREAKPOINT SETTED'
-            else:
-                self.dim_counter = self.dim_counter + dimNextFileToParse
+
         try:
             print 'Parsing the file',filepath
             self.parser.parse(mime, fname, path)

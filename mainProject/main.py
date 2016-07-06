@@ -8,7 +8,7 @@ from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/media/valerio/HD2/Backup/Download'
+walkpath='/home/valerio/Documenti/Forensic/TEST1'
 
 if __name__ == '__main__':
 
@@ -52,8 +52,13 @@ if __name__ == '__main__':
     dbmanager = dbManager.dbManager.get_instance()
 
     util = utils.utils.get_instance()
+
+    # Clear, all temp folders by unmounting, deleting ..
+    print 'SettinUp environment ....'
+    util.setUpEnvironment()
     # By default the recursive level on archives is 1
-    util.setMaxRecursionLevel(1)
+    util.setMaxRecursionLevel(2)
+    print 'Done ...'
 
     breackpointFile = '###'
 
