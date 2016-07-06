@@ -8,6 +8,7 @@ import io
 import os
 import tempfile
 import importlib
+import shutil
 import sys
 sys.path.insert(0, '../')
 
@@ -36,8 +37,9 @@ def fileParse(PATH_NAME,extension,realPath=""):
         parseMailBox(PATH_NAME, path, realPath)
 
     if extension == 'application/pst':
-
+        os.mkdir(OUTPUT_PATH)
         parsePST(PATH_NAME)
+        shutil.rmtree(OUTPUT_PATH)
 
     print 'All Mails parsed.'
 
@@ -49,14 +51,14 @@ def parsePST(PATH_NAME):
     convert_pst_to_mbox(PATH_NAME, OUTPUT_PATH)
     print 'Conversion ended'
     for root, dirs, files in os.walk(OUTPUT_PATH):
-
         for file in files:
             fname = os.path.join(root, file)
             if os.path.isfile(fname):
                 print 'Analizing mailbox: ' + fname
 
                 parseMailBox(fname, PATH_NAME + file, PATH_NAME + file)
-    subprocess.call(['rm', '-rf', OUTPUT_PATH + '/*'])
+
+
 
 
 def parseMailBox(PATH_NAME, path, realPath):
@@ -141,6 +143,8 @@ def parseSingleMail(PATH_NAME, path, realPath):
 
 def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
 
+    actions = []
+
     if realPath == "":
         path = PATH_NAME
     else:
@@ -202,39 +206,35 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
     elif ftype == 'text/plain':
         filePath = path + '/' + str(ID)
         body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
-        doc = {
-            'mailID': ID,
-            'text/plain': body,
-        }
-        try:
-            dbmanager.push('forensic_db', 'mails', doc)
-        except:
 
-            temp = unicode(body, errors='ignore')
-            doc = {
+        action = {
+            "_index": "forensic_db",
+            "_type": "mails",
+            "_source": {
                 'mailID': ID,
-                'payload': temp,
+                'text/plain': unicode(body, errors='ignore'),
             }
-            dbmanager.push('forensic_db', 'mails', doc)
+        }
+
+        actions.append(action)
+        dbmanager.bulk(actions)
 
     elif ftype == 'text/html':
-        filePath = path + '/' + str(ID)
+
         body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
-        doc = {
-            'mailID': ID,
-            'text/html': body,
-        }
-        try:
-            dbmanager.push('forensic_db', 'mails', doc)
-        except:
 
-            temp = unicode(body, errors='ignore')
-            doc = {
+        action = {
+            "_index": "forensic_db",
+            "_type": "mails",
+            "_source": {
                 'mailID': ID,
-                'payload': temp,
+                'text/html': unicode(body, errors='ignore'),
             }
-            dbmanager.push('forensic_db', 'mails', doc)
 
+        }
+
+        actions.append(action)
+        dbmanager.bulk(actions)
 
     elif 'multipart/' in ftype:
         #nothing to do.
@@ -242,7 +242,7 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
     else:
         try:
             filePath = path + '/' + str(ID) + '/' + str(name)
-            print 'Parsing mail content',filePath
+            #print 'Parsing mail content',filePath
             data = part.get_payload()
             decodedData = data.decode('base64')
             # ###
@@ -276,16 +276,24 @@ def parseMailAttachment(ID, PATH_NAME, part ,realPath=""):
                  dbmanager.bulk(actions)
         except:
 
+            actions = []
             print 'Problem with file parsing in a mail'
 
             path = PATH_NAME + '/' + str(ID) + '/' + str(name)
 
-            doc = {
+            action = {
+                "_index": "forensic_db",
+                "_type": "mail",
+                "_source": {
+                    'mailID': ID,
+                    "exception": "Problem with file parsing: " + path,
+                }
 
-                'mailID': ID,
-                "exception": "Problem with file parsing: " + path,
             }
-            dbmanager.push('forensic_db', 'exception', doc)
+
+            actions.append(action)
+
+            dbmanager.bulk(actions)
         finally:
         #     # Automatically cleans up the file
              try:

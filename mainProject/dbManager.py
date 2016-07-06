@@ -1,10 +1,15 @@
 import elasticsearch
 from elasticsearch import helpers
+import sys
+
+#dbManager works as Singleton, so there is only one istance in the whole program. It is used to upload
+#elements into database.
 
 class dbManager(object):
 
     INSTANCE = None
     es = elasticsearch.Elasticsearch("127.0.0.1:9200")
+    tempData = []
 
     def __init__(self):
         if self.INSTANCE is not None:
@@ -17,22 +22,23 @@ class dbManager(object):
             cls.INSTANCE = dbManager()
         return cls.INSTANCE
 
-
-    def push(self,index,doc_type,body):
-
-        try:
-            self.es.index(index=index, doc_type=doc_type, body=body)
-            # es.index(index='forensic_db', doc_type='mails', body=doc)
-        except:
-            temp = {
-                body.keys()[0]:unicode(body[body.keys()[0]], errors='ignore'),
-                body.keys()[1]:unicode(body[body.keys()[1]], errors='ignore'),
-            }
-            self.es.index(index=index, doc_type=doc_type, body=temp)
-
-        #print "Record pushed to elasticsearch"
-
-
+    #Method used to push element into ElasticSearch database. It uses helpers.bulk(..) which is very useful
+    #to upload more than one information at once.
     def bulk(self,actions):
         if len(actions) > 0:
-            helpers.bulk(self.es,actions)
+            self.tempData.extend(actions)
+
+            #If more than # MB, store on elasticsearch and clear list
+            if sys.getsizeof(self.tempData) > 1000000:
+                print '####################The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
+                helpers.bulk(self.es, self.tempData)
+                print 'uploaded!'
+                self.tempData = []
+
+    #Used in the final part of the program, where should be done the last upload without size constraints.
+    def forceBulk(self):
+        if len(self.tempData) > 0:
+            print '####################The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
+            helpers.bulk(self.es, self.tempData)
+            print 'Cleaning.....'
+            self.tempData = []

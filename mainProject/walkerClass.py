@@ -110,11 +110,20 @@ class Walker:
             else:
                 self.getFileMetadata(mime, fname, realPath)
         else:
-            doc = {
+            actions = []
+            action = {
+                "_index": "forensic_db",
+                "_type": "exception",
+                "_source": {
                     "filePath": realPath,
-                    "exception": "File-Metadata of file inside archive not retrieved"
+                    "exception": "File-Metadata of file inside archive not retrieved",
+                }
+
             }
-            self.dbmanager.push('forensic_db','exception',doc)
+
+            actions.append(action)
+
+            self.dbmanager.bulk(actions)
 
 
 
@@ -138,11 +147,21 @@ class Walker:
             print 'Parsing the file',fname
             self.parser.parse(mime, fname, path)
         except Exception,e:
+            actions = []
             print str(e)
             print 'exception in getFileMetadata! for file',fname
-            doc = {
-                "filePath": filepath,
-                "exception": "Error in parsing the file",
+
+            action = {
+                "_index": "forensic_db",
+                "_type": "file-system-metadata",
+                "_source": {
+                    "filePath": filepath,
+                    "exception": "Error in parsing the file",
+                }
+
             }
-            self.dbmanager.push('forensic_db', 'file-system-metadata', doc)
+
+            actions.append(action)
+
+            self.dbmanager.bulk(actions)
 

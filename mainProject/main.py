@@ -7,7 +7,7 @@ from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/Forensic/TEST'
+walkpath='/home/valerio/Documenti/'
 
 if __name__ == '__main__':
 
@@ -70,10 +70,9 @@ if __name__ == '__main__':
     methodClass = walkerClass.Walker(parser,breackpointFile)
     methodClass.WalkPath(walkpath)
 
+    dbmanager.forceBulk()
+
     print 'Program succesfully ended'
 
     logging.info('[END] Program Ended')
 
-    def pushToDatabase(index,doc_type,body):
-
-        dbmanager.push(index,doc_type,body)
