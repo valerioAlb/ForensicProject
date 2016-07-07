@@ -1,6 +1,5 @@
 import subprocess
 import os
-import shutil
 #useful to manage different aspect of the application.
 class utils(object):
 

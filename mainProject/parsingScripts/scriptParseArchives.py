@@ -14,7 +14,7 @@ def fileParse(PATH_NAME,extension, realPath=""):
     if realPath == "":
         realPath = PATH_NAME
 
-    scriptParseGenericFile.fileParse(PATH_NAME,extension)
+    scriptParseGenericFile.fileParse(PATH_NAME,extension, realPath)
 
     a = util.setRecursion()
 
@@ -43,10 +43,8 @@ def fileParse(PATH_NAME,extension, realPath=""):
 
     parser = parser.FileParser()
     methodClass = walker.Walker(parser,'###')
-    if realPath=="":
-        methodClass.WalkPath(dirTemp,PATH_NAME)
-    else:
-        methodClass.WalkPath(dirTemp, realPath)
+
+    methodClass.WalkPath(dirTemp, realPath)
 
 
     # In the end umount the file

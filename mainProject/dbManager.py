@@ -26,7 +26,7 @@ class dbManager(object):
     #to upload more than one information at once.
     def bulk(self,actions):
         if len(actions) > 0:
-            self.tempData.extend(actions)
+            self.tempData += actions
 
             #If more than # MB, store on elasticsearch and clear list
             if sys.getsizeof(self.tempData) > 1000000:

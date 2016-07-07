@@ -26,7 +26,7 @@ class Walker:
     # retrieve all the files inside.
 
     # The comingPath variable (if setted ) is useful to not forget the archive filePath we are exploring.
-    def WalkPath(self,rootPath,comingPath="",recursiveFlag=""):
+    def WalkPath(self,rootPath,comingPath=""):
         for root, dirs, files in os.walk(rootPath):
             for file in files:
                 fname = os.path.join(root, file)
@@ -36,7 +36,7 @@ class Walker:
                     # or go deeper, if it is a compressed file.
                     self.getFileSystemMetaData(fname,comingPath)
 
-    # fname is a path to the desired file.
+    # fname is a path to the desired file
     def getFileSystemMetaData(self, fname, comingPath=""):
 
         # Check if some file should not be analized.
@@ -113,12 +113,15 @@ class Walker:
             self.getFileMetadata(mime, fname, realPath)
 
     # Method used to get file-metadata
-    def getFileMetadata(self,mime,fname,path=""):
+    def getFileMetadata(self, mime, fname, realpPath=""):
 
-        if path == "":
+        if realpPath == "":
             filepath=fname
         else:
-            filepath = path
+            filepath = realpPath
+
+        # We have now that filepath is the actual path of the file (that will be stored on elasticsearch), while fname
+        # is the path of the file to be analized
 
         dimNextFileToParse = os.path.getsize(fname)
 
@@ -133,7 +136,7 @@ class Walker:
 
         try:
             print 'Parsing the file',filepath
-            self.parser.parse(mime, fname, path)
+            self.parser.parse(mime, fname, realpPath)
         except Exception,e:
 
             # Error while parsing the file
