@@ -1,5 +1,6 @@
 import elasticsearch
 from elasticsearch import helpers
+import requests
 import sys
 
 #dbManager works as Singleton, so there is only one istance in the whole program. It is used to upload
@@ -26,19 +27,49 @@ class dbManager(object):
     #to upload more than one information at once.
     def bulk(self,actions):
         if len(actions) > 0:
-            self.tempData += actions
+            self.tempData.extend(actions)
 
             #If more than # MB, store on elasticsearch and clear list
             if sys.getsizeof(self.tempData) > 1000000:
-                print '####################The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
-                helpers.bulk(self.es, self.tempData)
+                print 'UPLOADING ########### The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
+                try:
+                    helpers.bulk(self.es, self.tempData)
+                except:
+                    print 'Error while uploading : ', actions
                 print 'uploaded!'
                 self.tempData = []
 
     #Used in the final part of the program, where should be done the last upload without size constraints.
     def forceBulk(self):
         if len(self.tempData) > 0:
-            print '####################The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
+            print 'UPLOADING ############# The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
             helpers.bulk(self.es, self.tempData)
-            print 'Cleaning.....'
             self.tempData = []
+
+    def initializeDB(self):
+
+        if self.es.indices.exists('forensic_db'):
+            print 'The DB already exists'
+        else:
+            doc = {
+                "index": {
+                    "analysis": {
+                        "analyzer": {
+                            "default": {
+                                "tokenizer": "standard",
+                                "filter": ["my_icu_normalizer", "asciifolding"]
+                            }
+                        },
+                        "filter": {
+                            "my_icu_normalizer": {
+                                "type": "icu_normalizer",
+                                "name": "nfkc",
+                                "mode": "decompose"
+                            }
+                        }
+                    }
+                }
+            }
+
+            res = self.es.indices.create(index='forensic_db', body=doc)
+            print 'Result of operation \"CREATING DATABASE\" :',res

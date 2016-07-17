@@ -10,7 +10,8 @@ class utils(object):
 
     dim_counter = 0
     BREAKPOINT_DIMENSION = 100
-
+    numberOfFiles = 0
+    currentNumberFile = 0
 
     tempDirArchives = "/home/valerio/temp/"
 
@@ -53,6 +54,13 @@ class utils(object):
 
     def setBreakpointDimensionMB(self,dimensionMB):
         self.BREAKPOINT_DIMENSION = dimensionMB
+
+    def setNumbFiles(self,numberOfFiles):
+        self.numberOfFiles = numberOfFiles
+
+    def increaseFiles(self):
+        self.currentNumberFile = self.currentNumberFile + 1;
+        print 'Parsing file ',self.currentNumberFile,' of ',self.numberOfFiles
 
     def setTempDirArchives(self,tempDIr):
         self.tempDirArchives = tempDIr

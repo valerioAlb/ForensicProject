@@ -4,16 +4,19 @@ import logging
 import os
 import dbManager
 import utils
+import os.path
 from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Documenti/Forensic/TEST1'
+walkpath='/home/valerio/Scrivania/ScottNeal/Personal folders'
+# walkpath='/media/valerio/ExternalHD/RevisedEDRMv1_Complete/RevisedEDRMv1_Complete/andrew_lewis/'
 
 if __name__ == '__main__':
 
     logging.basicConfig(filename='./LOG.log',level=logging.INFO,format=' [%(levelname)s] %(asctime)s %(message)s')
-
+    cpt = sum([len(files) for r, d, files in os.walk(walkpath)])
+    print cpt
     ###################################################################
     es_logger = logging.getLogger('elasticsearch')
     es_logger.propagate = False
@@ -50,12 +53,14 @@ if __name__ == '__main__':
 
     # Initialize the dbManager that will be used in the program
     dbmanager = dbManager.dbManager.get_instance()
+    dbmanager.initializeDB()
 
     util = utils.utils.get_instance()
 
     # Clear, all temp folders by unmounting, deleting ..
     print 'SettinUp environment ....'
     util.setUpEnvironment()
+    util.setNumbFiles(cpt)
     # By default the recursive level on archives is 1
     util.setMaxRecursionLevel(2)
     print 'Done ...'

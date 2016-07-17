@@ -1,11 +1,14 @@
 #application/mbox message/rfc822 application/pst
+# -*- coding: utf-8 -*-
 from email.parser import Parser
+from langdetect import detect
 import mailbox
 import subprocess
 import rarfile
 import zipfile
 import io
 import os
+import chardet
 import tempfile
 import importlib
 import sys
@@ -47,19 +50,20 @@ def fileParse(PATH_NAME,extension,realPath=""):
         p1 = subprocess.Popen(["rm","-r", tempDir], stdout=subprocess.PIPE)
         p1.communicate()
 
-    print 'All Mails parsed.'
+    #print 'All Mails parsed.'
 
     return 0
 
 
 def parsePST(PATH_NAME,tempDir, path):
+
     print 'Conversion of file PST: ' + path
     convert_pst_to_mbox(PATH_NAME, tempDir)
     for root, dirs, files in os.walk(tempDir):
         for file in files:
             fname = os.path.join(root, file)
             if os.path.isfile(fname):
-                print 'Analizing mailbox: ' + fname
+                print 'Analyzing mailbox: ' + fname
 
                 parseMailBox(fname, path+'/'+file)
 
@@ -72,7 +76,7 @@ def parseMailBox(PATH_NAME, path):
     numMail = len(mbox)
     j = 1
     print 'parsing mailbox ' + path
-    print 'mailbox ' + path + ' has ' + str(numMail) + ' elements'
+    #print 'mailbox ' + path + ' has ' + str(numMail) + ' elements'
     for message in mbox:
         actions = []
 
@@ -82,8 +86,8 @@ def parseMailBox(PATH_NAME, path):
             "_index": "forensic_db",
             "_type": "file-metadata",
             "_source": {
-                'mailID': ID,
-                'filePath': path,
+                'mailID': unicode(ID,'utf8',errors='replace'),
+                'filePath': unicode(path,'utf8',errors='replace'),
             }
 
         }
@@ -96,7 +100,7 @@ def parseMailBox(PATH_NAME, path):
                 "_type": "mail",
                 "_source": {
                     'mailID': ID,
-                    x[0].replace(".", "_"): x[1],
+                    unicode(x[0].replace(".", "_"),'utf8',errors='replace'): unicode(x[1],'utf8',errors='replace'),
                 }
 
             }
@@ -110,10 +114,10 @@ def parseMailBox(PATH_NAME, path):
         for part in message.walk():
             parseMailAttachment(ID, PATH_NAME, part, path)
 
-        #print 'Parse message', j
-        if (j % 100 == 0):
-            print('Parsed ' + str(j) + " mails of " + str(numMail) + ' for mailbox ' + path)
-        j = j + 1
+        # print 'Parse message', j
+        #if (j % 100 == 0):
+        #    print('Parsed ' + str(j) + " mails of " + str(numMail) + ' for mailbox ' + path)
+        #j = j + 1
 
 
 def parseSingleMail(PATH_NAME, path):
@@ -125,21 +129,22 @@ def parseSingleMail(PATH_NAME, path):
 
     action = {
         "_index": "forensic_db",
-        "_type": "file-metadata",
+        "_type": "mail",
         "_source": {
-            'mailID': ID,
-            'filePath': path,
+            'mailID': unicode(ID,'utf8',errors='replace'),
+            'filePath': unicode(path,'utf8',errors='replace'),
         }
 
     }
     actions.append(action)
+
     for x in message.items():
         action = {
             "_index": "forensic_db",
             "_type": "mail",
             "_source": {
-                'mailID': ID,
-                x[0].replace(".", "_"): x[1],
+                'mailID': unicode(ID,'utf8',errors='replace'),
+                unicode(x[0].replace(".", "_"),'utf8',errors='replace'): unicode(x[1],'utf8',errors='replace'),
             }
 
         }
@@ -159,6 +164,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
     ftype = part.get_content_type()
 
     if ftype == 'application/zip':
+
         data = part.get_payload()
         decodedData = data.decode('base64')
         f = io.BytesIO(decodedData)
@@ -167,7 +173,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             properties = {}
 
             filePath = path + '/' + str(ID) + '/' + str(name)+'/'+str(file.filename)
-            zipFileName = file.filename
+            zipFileName = unicode(file.filename,errors='ignore')
             properties["zipFileName"] = zipFileName
             zipFileSize = file.file_size
             properties["zipFileSize"] = zipFileSize
@@ -194,7 +200,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             properties = {}
 
             filePath = path + '/' + str(ID) + '/' + str(name) + '/' + str(file.filename)
-            rarFileName = file.filename
+            rarFileName = unicode(file.filename,errors='ignore')
             properties["rarFileName"] = rarFileName
             rarFileSize = file.file_size
             properties["rarFileSize"] = rarFileSize
@@ -208,31 +214,38 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
         f.close()
 
     elif ftype == 'text/plain':
-        # filePath = path + '/' + str(ID)
-        body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
+
+        body = unicode(part.get_payload(decode='True'),'utf8',errors='replace')
+        lang = detect(body)
+        charset = chardet.detect(part.get_payload(decode='True'))
+        charset_part = part.get_content_charset()
 
         action = {
             "_index": "forensic_db",
             "_type": "mails",
             "_source": {
-                'mailID': ID,
-                'text/plain': unicode(body, errors='ignore'),
+                'mailID': unicode(ID,'utf8',errors='replace'),
+                'text/plain': body,
+                'lang': lang,
+                'charset_header' : charset_part,
+                'charset_detected': charset,
             }
         }
 
         actions.append(action)
+
         dbmanager.bulk(actions)
 
     elif ftype == 'text/html':
 
-        body = part.get_payload()  # to control automatic email-style MIME decoding (e.g., Base64, uuencode, quoted-printable)
+        body = unicode(part.get_payload(decode='True'),'utf8',errors='replace')
 
         action = {
             "_index": "forensic_db",
             "_type": "mails",
             "_source": {
-                'mailID': ID,
-                'text/html': unicode(body, errors='ignore'),
+                'mailID': unicode(ID,'utf8',errors='replace'),
+                'text/html': body,
             }
 
         }
@@ -269,8 +282,8 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
                         "_index": "forensic_db",
                         "_type": "mail",
                         "_source": {
-                             'filePath': filePath,
-                             output[0].strip(" ").replace(".", "_"): output[1].strip(" "),
+                             'filePath': unicode(filePath,'utf8',errors='replace'),
+                             unicode(output[0].strip(" ").replace(".", "_"),'utf8',errors='replace'): unicode(output[1].strip(" "),'utf8', errors='replace'),
                          }
 
                      }
@@ -289,8 +302,8 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
                 "_index": "forensic_db",
                 "_type": "mail",
                 "_source": {
-                    'mailID': ID,
-                    "exception": "Problem with file parsing: " + filePath,
+                    'mailID': unicode(ID,'utf8',errors='replace'),
+                    "exception": unicode("Problem with file parsing: " + filePath,'utf8',errors='replace'),
                 }
 
             }
@@ -315,8 +328,8 @@ def uploadDatabase(properties,path):
             "_index": "forensic_db",
             "_type": "file-system-metadata",
             "_source": {
-                "filePath": path,
-                key: value
+                "filePath": unicode(path,'utf8',errors='replace'),
+                key: unicode(value,'utf8',errors='replace')
             }
 
         }

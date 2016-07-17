@@ -85,6 +85,7 @@ class Walker:
 
         if comingPath == "":
             realPath=fname
+            self.util.increaseFiles()
         else:
             realPath=comingPath+"/"+os.path.basename(fname)
 
@@ -97,7 +98,7 @@ class Walker:
                 "_index":"forensic_db",
                 "_type":"file-system-metadata",
                 "_source": {
-                    "filePath":realPath,
+                    "filePath":unicode(realPath,'utf8',errors='ignore'),
                     key:value
                 }
 
@@ -135,7 +136,7 @@ class Walker:
                 print 'BREAKPOINT SETTED'
 
         try:
-            print 'Parsing the file',filepath
+            #print 'Parsing the file',filepath
             self.parser.parse(mime, fname, realpPath)
         except Exception,e:
 
@@ -148,7 +149,7 @@ class Walker:
                 "_index": "forensic_db",
                 "_type": "file-system-metadata",
                 "_source": {
-                    "filePath": filepath,
+                    "filePath": unicode(filepath,'utf8',errors='ignore'),
                     "exception": "Error in parsing the file",
                 }
 

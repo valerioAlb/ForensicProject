@@ -29,8 +29,8 @@ def fileParse(PATH_NAME,mime,realPath=""):
                 "_index": "forensic_db",
                 "_type": "file-metadata",
                 "_source": {
-                    "filePath": path,
-                    output[0].strip(" ").replace(".", "_"): unicode(output[1].strip(" "), errors='ignore')
+                    "filePath": unicode(path,'utf8',errors='replace'),
+                    unicode(output[0].strip(" ").replace(".", "_"),'utf8',errors='ignore'): unicode(output[1].strip(" "),'utf8',errors='ignore')
                 }
 
             }
