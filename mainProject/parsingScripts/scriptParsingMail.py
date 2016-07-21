@@ -83,7 +83,7 @@ def parseMailBox(PATH_NAME, path):
         ID = message['Message-ID']
 
         action = {
-            "_index": "forensic_db",
+            "_index": util.getIndex(),
             "_type": "file-metadata",
             "_source": {
                 'mailID': unicode(ID,'utf8',errors='replace'),
@@ -96,7 +96,7 @@ def parseMailBox(PATH_NAME, path):
 
         for x in message.items():
             action = {
-                "_index": "forensic_db",
+                "_index": util.getIndex(),
                 "_type": "mail",
                 "_source": {
                     'mailID': ID,
@@ -128,7 +128,7 @@ def parseSingleMail(PATH_NAME, path):
     ID = message['Message-ID']
 
     action = {
-        "_index": "forensic_db",
+        "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
             'mailID': unicode(ID,'utf8',errors='replace'),
@@ -140,7 +140,7 @@ def parseSingleMail(PATH_NAME, path):
 
     for x in message.items():
         action = {
-            "_index": "forensic_db",
+            "_index": util.getIndex(),
             "_type": "mail",
             "_source": {
                 'mailID': unicode(ID,'utf8',errors='replace'),
@@ -221,7 +221,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
         charset_part = part.get_content_charset()
 
         action = {
-            "_index": "forensic_db",
+            "_index": util.getIndex(),
             "_type": "mails",
             "_source": {
                 'mailID': unicode(ID,'utf8',errors='replace'),
@@ -241,7 +241,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
         body = unicode(part.get_payload(decode='True'),'utf8',errors='replace')
 
         action = {
-            "_index": "forensic_db",
+            "_index": util.getIndex(),
             "_type": "mails",
             "_source": {
                 'mailID': unicode(ID,'utf8',errors='replace'),
@@ -279,7 +279,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
                     output = token.split(':', 1)
 
                     action = {
-                        "_index": "forensic_db",
+                        "_index": util.getIndex(),
                         "_type": "mail",
                         "_source": {
                              'filePath': unicode(filePath,'utf8',errors='replace'),
@@ -299,7 +299,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             filePath = path + '/' + str(ID) + '/' + str(name)
 
             action = {
-                "_index": "forensic_db",
+                "_index": util.getIndex(),
                 "_type": "mail",
                 "_source": {
                     'mailID': unicode(ID,'utf8',errors='replace'),
@@ -325,7 +325,7 @@ def uploadDatabase(properties,path):
 
     for key, value in properties.iteritems():
         action = {
-            "_index": "forensic_db",
+            "_index": util.getIndex(),
             "_type": "file-system-metadata",
             "_source": {
                 "filePath": unicode(path,'utf8',errors='replace'),

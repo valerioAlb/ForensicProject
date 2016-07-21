@@ -7,6 +7,7 @@ class utils(object):
 
     maxRecursionLevel = 1
     actualRecursionLevel = 0
+    actualIndex = 'default'
 
     dim_counter = 0
     BREAKPOINT_DIMENSION = 100
@@ -67,6 +68,13 @@ class utils(object):
 
     def getTempDirArchives(self):
         return self.tempDirArchives
+
+    def setIndex(self,index):
+        self.actualIndex = index
+        print 'Index Setted : ',index
+
+    def getIndex(self):
+        return self.actualIndex
 
     # Used at the beginning of the program to setup the environment
     def setUpEnvironment(self):

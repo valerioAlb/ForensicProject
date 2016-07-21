@@ -95,7 +95,7 @@ class Walker:
         for key,value in properties.iteritems():
 
             action = {
-                "_index":"forensic_db",
+                "_index":self.util.getIndex(),
                 "_type":"file-system-metadata",
                 "_source": {
                     "filePath":unicode(realPath,'utf8',errors='ignore'),
@@ -146,7 +146,7 @@ class Walker:
             print 'exception in getFileMetadata! for file',fname
 
             action = {
-                "_index": "forensic_db",
+                "_index": self.util.getIndex(),
                 "_type": "file-system-metadata",
                 "_source": {
                     "filePath": unicode(filepath,'utf8',errors='ignore'),

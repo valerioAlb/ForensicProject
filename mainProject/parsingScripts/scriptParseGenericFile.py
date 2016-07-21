@@ -15,6 +15,9 @@ def fileParse(PATH_NAME,mime,realPath=""):
     dbManager = importlib.import_module("dbManager")
     dbmanager = dbManager.dbManager.get_instance()
 
+    utils = importlib.import_module("utils")
+    util = utils.utils.get_instance()
+
     p1 = subprocess.Popen(["exiftool", PATH_NAME], stdout=subprocess.PIPE)
     result = p1.communicate()[0]
     # Now process the result, getting the lines with values
@@ -26,7 +29,7 @@ def fileParse(PATH_NAME,mime,realPath=""):
         if token != '':
             output = token.split(':', 1)
             action = {
-                "_index": "forensic_db",
+                "_index": util.getIndex(),
                 "_type": "file-metadata",
                 "_source": {
                     "filePath": unicode(path,'utf8',errors='replace'),

@@ -1,7 +1,7 @@
 import walkerClass
 import fileParserClass
 import logging
-import os
+import time
 import dbManager
 import utils
 import os.path
@@ -9,14 +9,18 @@ from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Scrivania/ScottNeal/Personal folders'
+walkpath='/home/valerio/Scrivania/DatasetMBOX'
+#walkpath='/home/valerio/Scrivania/Mail di Test'
+
 # walkpath='/media/valerio/ExternalHD/RevisedEDRMv1_Complete/RevisedEDRMv1_Complete/andrew_lewis/'
 
 if __name__ == '__main__':
 
     logging.basicConfig(filename='./LOG.log',level=logging.INFO,format=' [%(levelname)s] %(asctime)s %(message)s')
+
+    # Find the total number of files, useful to show the progress
     cpt = sum([len(files) for r, d, files in os.walk(walkpath)])
-    print cpt
+    print 'Total number of files ', cpt
     ###################################################################
     es_logger = logging.getLogger('elasticsearch')
     es_logger.propagate = False
@@ -48,21 +52,29 @@ if __name__ == '__main__':
     logger.addHandler(fileHandler)
     ####################################################################
 
+    # Print the support fo type of file
     parser = fileParserClass.FileParser()
     parser.printMimeSupported()
+
+    util = utils.utils.get_instance()
+    util.setIndex('forensic_db_four')
+    print '############: ', util.getIndex()
 
     # Initialize the dbManager that will be used in the program
     dbmanager = dbManager.dbManager.get_instance()
     dbmanager.initializeDB()
 
-    util = utils.utils.get_instance()
 
     # Clear, all temp folders by unmounting, deleting ..
+
     print 'SettinUp environment ....'
     util.setUpEnvironment()
     util.setNumbFiles(cpt)
+
     # By default the recursive level on archives is 1
     util.setMaxRecursionLevel(2)
+
+
     print 'Done ...'
 
     breackpointFile = '###'
@@ -82,6 +94,7 @@ if __name__ == '__main__':
 
     # Pause before continuing with the program
     sleep(3)
+    timeStart = (time.strftime("%H:%M:%S")) + ' ' + (time.strftime("%d/%m/%Y"))
     print 'Program Started'
     logging.info('[START] Program Started')
 
@@ -89,8 +102,9 @@ if __name__ == '__main__':
     methodClass.WalkPath(walkpath)
 
     dbmanager.forceBulk()
-
+    timeEnd = (time.strftime("%H:%M:%S")) + ' ' + (time.strftime("%d/%m/%Y"))
     print 'Program succesfully ended'
 
+    logging.info('Start: '+timeStart+' End: '+timeEnd)
     logging.info('[END] Program Ended')
 
