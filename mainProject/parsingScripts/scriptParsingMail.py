@@ -1,10 +1,13 @@
 #application/mbox message/rfc822 application/pst
 # -*- coding: utf-8 -*-
 from email.parser import Parser
+import email.utils
 from langdetect import detect
 import mailbox
 import subprocess
 import rarfile
+import datetime
+import time
 import zipfile
 import io
 import os
@@ -12,6 +15,7 @@ import chardet
 import tempfile
 import importlib
 import sys
+from time import sleep
 sys.path.insert(0, '../')
 
 dbManager = importlib.import_module("dbManager")
@@ -78,81 +82,142 @@ def parseMailBox(PATH_NAME, path):
     print 'parsing mailbox ' + path
     #print 'mailbox ' + path + ' has ' + str(numMail) + ' elements'
     for message in mbox:
-        actions = []
+        ID = parse_email_header(message, path)
 
-        ID = message['Message-ID']
+        if ID is not None:
+            for part in message.walk():
+                    parseMailAttachment(ID, PATH_NAME, part, path)
 
-        action = {
-            "_index": util.getIndex(),
-            "_type": "file-metadata",
-            "_source": {
-                'mailID': unicode(ID,'utf8',errors='replace'),
-                'filePath': unicode(path,'utf8',errors='replace'),
-            }
+def parseSingleMail(PATH_NAME, path):
 
-        }
 
-        actions.append(action)
 
-        for x in message.items():
-            action = {
-                "_index": util.getIndex(),
-                "_type": "mail",
-                "_source": {
-                    'mailID': ID,
-                    unicode(x[0].replace(".", "_"),'utf8',errors='replace'): unicode(x[1],'utf8',errors='replace'),
-                }
+    message = Parser().parse(open(PATH_NAME, 'r'))
 
-            }
 
-            actions.append(action)
+    ID = parse_email_header(message, path)
 
-        dbmanager.bulk(actions)
-
-        # From now on we consider the mail attachments
+    if ID is not None:
 
         for part in message.walk():
             parseMailAttachment(ID, PATH_NAME, part, path)
 
-        # print 'Parse message', j
-        #if (j % 100 == 0):
-        #    print('Parsed ' + str(j) + " mails of " + str(numMail) + ' for mailbox ' + path)
-        #j = j + 1
 
-
-def parseSingleMail(PATH_NAME, path):
+def parse_email_header(message, path):
 
     actions = []
 
-    message = Parser().parse(open(PATH_NAME, 'r'))
     ID = message['Message-ID']
+
+    if ID is None:
+        return None
+
+    filepath = unicode(path, 'utf8', errors='replace')
 
     action = {
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID,'utf8',errors='replace'),
-            'filePath': unicode(path,'utf8',errors='replace'),
+            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'filePath': filepath,
         }
 
     }
     actions.append(action)
 
     for x in message.items():
+
+        field = unicode(x[0].replace(".", "_"), 'utf8', errors='replace')
+        value = unicode(x[1], 'utf8', errors='replace')
+
         action = {
             "_index": util.getIndex(),
             "_type": "mail",
             "_source": {
-                'mailID': unicode(ID,'utf8',errors='replace'),
-                unicode(x[0].replace(".", "_"),'utf8',errors='replace'): unicode(x[1],'utf8',errors='replace'),
+                'mailID': unicode(ID, 'utf8', errors='replace'),
+                field: value,
             }
 
         }
 
         actions.append(action)
+
+    ###################################### Manage DATE field ########################
+
+    # Original Field, something like 'Fri, 15 Jul 2016 20:40:31 +0200'
+    date_str = message.get('date')
+    parsedDate = email.utils.parsedate_tz(date_str)
+    # Convert to timezone 0
+    timestamp = email.utils.formatdate(email.utils.mktime_tz(parsedDate))
+    parsedDate = email.utils.parsedate(timestamp)
+    finalDate = datetime.datetime.fromtimestamp(time.mktime(parsedDate))
+    # Convert date in elasticsearch-recognized field, something like '2016-07-15T18:40:31'
+    normalized_date_notime = str(finalDate).split(' ', 1)[0]
+    # Convert date in elasticsearch-recognized field, something like '2016-07-15T18:40:31'
+    finalDate = str(finalDate).replace(" ", "T")
+    normalized_date = unicode(finalDate,'utf8',errors='replace')
+
+    action = {
+        "_index": util.getIndex(),
+        "_type": "mail",
+        "_source": {
+            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'normalized_date': normalized_date,
+        }
+
+    }
+    actions.append(action)
+
+    action = {
+        "_index": util.getIndex(),
+        "_type": "mail",
+        "_source": {
+            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'normalized_date_notime': normalized_date_notime,
+        }
+
+    }
+    actions.append(action)
+    ################################################################################
+
+    #################################### Manage FROM field ##########################
+
+    # Original field, something like: Valerio Albini <valerio.albini01@gmail.com>
+    from_str = message.get('from')
+    from_tuple = email.utils.parseaddr(from_str)
+    from_name = from_tuple[0]
+    from_address = from_tuple[1]
+
+    from_name = unicode(from_name,'utf8',errors='replace')
+
+    action = {
+        "_index": util.getIndex(),
+        "_type": "mail",
+        "_source": {
+            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'from_name': from_name,
+        }
+
+    }
+    actions.append(action)
+
+    from_address = unicode(from_address,'utf8',errors='replace')
+    action = {
+        "_index": util.getIndex(),
+        "_type": "mail",
+        "_source": {
+            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'from_address': from_address,
+        }
+
+    }
+    actions.append(action)
+
+    #################################################################################
+
+
     dbmanager.bulk(actions)
-    for part in message.walk():
-        parseMailAttachment(ID, PATH_NAME, part, path)
+    return ID
 
 
 def parseMailAttachment(ID, PATH_NAME, part, path):
@@ -173,7 +238,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             properties = {}
 
             filePath = path + '/' + str(ID) + '/' + str(name)+'/'+str(file.filename)
-            zipFileName = unicode(file.filename,errors='ignore')
+            zipFileName = file.filename
             properties["zipFileName"] = zipFileName
             zipFileSize = file.file_size
             properties["zipFileSize"] = zipFileSize
@@ -200,7 +265,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             properties = {}
 
             filePath = path + '/' + str(ID) + '/' + str(name) + '/' + str(file.filename)
-            rarFileName = unicode(file.filename,errors='ignore')
+            rarFileName = file.filename
             properties["rarFileName"] = rarFileName
             rarFileSize = file.file_size
             properties["rarFileSize"] = rarFileSize
@@ -208,7 +273,6 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             properties["rarCompressSize"] = rarCompressSize
             rarDateTime = file.date_time
             properties["rarDateTime"] = rarDateTime
-
             uploadDatabase(properties,filePath)
 
         f.close()
@@ -216,8 +280,15 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
     elif ftype == 'text/plain':
 
         body = unicode(part.get_payload(decode='True'),'utf8',errors='replace')
-        lang = detect(body)
-        charset = chardet.detect(part.get_payload(decode='True'))
+        try:
+            lang = detect(body)
+        except:
+            lang = 'unknown'
+
+        try:
+            charset = chardet.detect(part.get_payload(decode='True'))
+        except:
+            charset = 'unknown'
         charset_part = part.get_content_charset()
 
         action = {
@@ -329,7 +400,7 @@ def uploadDatabase(properties,path):
             "_type": "file-system-metadata",
             "_source": {
                 "filePath": unicode(path,'utf8',errors='replace'),
-                key: unicode(value,'utf8',errors='replace')
+                key: value,
             }
 
         }

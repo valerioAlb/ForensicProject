@@ -9,8 +9,8 @@ from time import sleep
 
 LOG_PATH = './LOG.log'
 
-walkpath='/home/valerio/Scrivania/DatasetMBOX'
-#walkpath='/home/valerio/Scrivania/Mail di Test'
+#walkpath='/home/valerio/Scrivania/DatasetMBOX'
+walkpath='/home/valerio/Scrivania/EmailPersonali'
 
 # walkpath='/media/valerio/ExternalHD/RevisedEDRMv1_Complete/RevisedEDRMv1_Complete/andrew_lewis/'
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.printMimeSupported()
 
     util = utils.utils.get_instance()
-    util.setIndex('forensic_db_four')
+    util.setIndex('test')
     print '############: ', util.getIndex()
 
     # Initialize the dbManager that will be used in the program

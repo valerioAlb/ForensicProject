@@ -60,7 +60,7 @@ class dbManager(object):
                         "analyzer": {
                             "default": {
                                 "tokenizer": "standard",
-                                "filter": ["my_icu_normalizer", "asciifolding"]
+                                "filter": ["my_icu_normalizer", "asciifolding", "lowercase"]
                             }
                         },
                         "filter": {
