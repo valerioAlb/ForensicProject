@@ -7,6 +7,8 @@ class Communication:
         self.incoming = []
         self.outgoing = []
         self.result = {}
+        self.std_deviation = 0
+        self.variance = 0
 
     def add_incoming(self, incoming):
         self.incoming.append(incoming)

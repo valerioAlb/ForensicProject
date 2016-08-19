@@ -1,20 +1,21 @@
 # coding=utf-8
 
 from script_search_methods import *
+import threading_methods
 
 
 # mboxOwner = 'VALERIO ALBINI <valerio.albini01@universitadipavia.it>'
 
 # Specify the period to take in consideration for the analysis
 #start = '2016-01-01'
-start = '2013-01-01'
+start = '2011-01-01'
 end = 'now'
 
 # With this method, extract all the ID of the mails in the timebox [start date - end date]
 mails = extract_mails_from_interval(start, end)
 print 'len of mails: ', len(mails)
 # With this method retrieve all the info relevant for building statistic, mail from, mail to, cc, delivered to...
-messages = extract_relevant_information_about_mail(mails)
+messages = threading_methods.search_messages_informations(mails)
 print 'len of messages: ', len(messages)
 
 
@@ -67,4 +68,16 @@ print 'Storing results into elasticsearch Database'
 print
 # visualize_results(communications)
 
-print 'Program Terminated'
+print 'Starting threading alghorithm'
+
+messages = threading_methods.search_messages_informations(mails)
+
+messages.sort()
+
+subject_table = threading_methods.thread(messages)
+
+subject_table = threading_methods.refine_result(subject_table,communications)
+
+for element in subject_table:
+    print '########################'
+    threading_methods.print_element(subject_table[element])

@@ -77,8 +77,6 @@ def parsePST(PATH_NAME,tempDir, path):
 def parseMailBox(PATH_NAME, path):
 
     mbox = mailbox.mbox(PATH_NAME)
-    numMail = len(mbox)
-    j = 1
     print 'parsing mailbox ' + path
     #print 'mailbox ' + path + ' has ' + str(numMail) + ' elements'
     for message in mbox:
@@ -109,8 +107,14 @@ def parse_email_header(message, path):
 
     ID = message['Message-ID']
 
-    if ID is None:
+    if ID is None or ID is '':
+        print '####################################################################################'
+        print message
+        print '####################################################################################'
         return None
+    else:
+        #ID = unicode(ID, 'utf8', errors='replace')
+        print ID
 
     filepath = unicode(path, 'utf8', errors='replace')
 
@@ -118,7 +122,7 @@ def parse_email_header(message, path):
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'mailID': ID,
             'filePath': filepath,
         }
 
@@ -134,7 +138,7 @@ def parse_email_header(message, path):
             "_index": util.getIndex(),
             "_type": "mail",
             "_source": {
-                'mailID': unicode(ID, 'utf8', errors='replace'),
+                'mailID': ID,
                 field: value,
             }
 
@@ -161,7 +165,7 @@ def parse_email_header(message, path):
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'mailID': ID,
             'normalized_date': normalized_date,
         }
 
@@ -172,7 +176,7 @@ def parse_email_header(message, path):
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'mailID': ID,
             'normalized_date_notime': normalized_date_notime,
         }
 
@@ -194,7 +198,7 @@ def parse_email_header(message, path):
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'mailID': ID,
             'from_name': from_name,
         }
 
@@ -206,7 +210,7 @@ def parse_email_header(message, path):
         "_index": util.getIndex(),
         "_type": "mail",
         "_source": {
-            'mailID': unicode(ID, 'utf8', errors='replace'),
+            'mailID': ID,
             'from_address': from_address,
         }
 
@@ -295,7 +299,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             "_index": util.getIndex(),
             "_type": "mails",
             "_source": {
-                'mailID': unicode(ID,'utf8',errors='replace'),
+                'mailID': ID,
                 'text/plain': body,
                 'lang': lang,
                 'charset_header' : charset_part,
@@ -315,7 +319,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
             "_index": util.getIndex(),
             "_type": "mails",
             "_source": {
-                'mailID': unicode(ID,'utf8',errors='replace'),
+                'mailID': ID,
                 'text/html': body,
             }
 
@@ -373,7 +377,7 @@ def parseMailAttachment(ID, PATH_NAME, part, path):
                 "_index": util.getIndex(),
                 "_type": "mail",
                 "_source": {
-                    'mailID': unicode(ID,'utf8',errors='replace'),
+                    'mailID': ID,
                     "exception": unicode("Problem with file parsing: " + filePath,'utf8',errors='replace'),
                 }
 

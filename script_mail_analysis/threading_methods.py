@@ -9,6 +9,7 @@ p = re.compile('([\[\(] *)?.*(RE?S?|FWD?|re\[\d+\]?) *([-:;)\]][ :;\])-]*|$)|\]+
 p_match_ID = re.compile(ur'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+', re.MULTILINE | re.IGNORECASE)
 
 
+
 def search_messages_informations(mails):
     messages = []
     for ID in mails.keys():
@@ -219,6 +220,7 @@ def thread(messages):
 
     for container in root_set:
 
+        i = 0
         # As above
 
         # If there is a message in the Container, the subject is the subject of that message.
@@ -238,11 +240,53 @@ def thread(messages):
         if subject_container is container or subject_container is None:
             continue
 
+        ######################### Check that there have not been changes in interlocutors ############################
+
+        if container.message is None:
+            mail_to = container.children[0].message.mailTo
+            mail_from = container.children[0].message.mailFrom
+        else:
+            mail_to = container.message.mailTo
+            mail_from = container.message.mailFrom
+
+        if subject_container.message is None:
+            mail_to_subject = subject_container.children[0].message.mailTo
+            mail_from_subject = subject_container.children[0].message.mailFrom
+        else:
+            mail_to_subject = subject_container.message.mailTo
+            mail_from_subject = subject_container.message.mailFrom
+
+        addresses_container = []
+        addresses_subject_container = []
+
+        addresses_container.append(mail_from)
+        addresses_container.extend(mail_to)
+
+        addresses_subject_container.append(mail_from_subject)
+        addresses_subject_container.extend(mail_to_subject)
+
+        # less or equal than one, because one is always present: the email address of the mailbox owner.
+        to_append = True
+
+        if len(list(set(addresses_container) & set(addresses_subject_container))) <= 1:
+            # In this case there is a change in interlocutors, also if the subject is the same.
+            # In this case to not merge the two conversations.
+            to_append = False
+            i = i + 1
+
+
+        ############################################################################################################
+
             # Otherwise we want to group together this container and the one in the table. There are a few
             # possibilities:
             # If both are dummies, append one's children to the other, and remove the non empty container.
 
-        if subject_container.message is None and container.message is None:
+        if not to_append:
+            # Case where we don't want to merge conversations
+            subject_new = subject + '(' + str(i) + ')'
+            subject_table[subject_new] = container
+
+        elif subject_container.message is None and container.message is None:
             for child in container.children:
                 subject_container.add_child(child)
 
@@ -268,7 +312,6 @@ def thread(messages):
         # this catches the both-and-replies and neither-are-replies cases, and makes them be a
         # siblings instead of asserting a hierarchical relationship which might not be true.
         else:
-            pass
             new_container = Container()
             new_container.add_child(subject_container)
             new_container.add_child(container)
@@ -282,7 +325,7 @@ def print_element(element):
     if element.message is None:
         print 'Root element'
     else:
-        print '--> ', element.message.subject
+        print '--> ', element.message.subject, 'Date: ', element.message.date
     for child in element.children:
         print_element(child)
 
@@ -319,3 +362,49 @@ def prune_container(container):
     else:
         # Don't do anything
         return [container]
+
+
+def refine_result(subject_table,communications):
+    # Now, for each entry of subject_table I have a possible conversation. For each of these,
+    # I have to verify that it is really only one conversation.
+
+    temp_subject_table = {}
+
+    # First filter over addresses (founded before while looking only for 'good' communications).
+
+    addresses_to_care = communications.keys()
+
+    print 'Addresses to care: ',addresses_to_care
+
+    for subject in subject_table:
+        subject_root_container = subject_table[subject]
+
+        if subject_root_container.message is None:
+            message = subject_root_container.children[0].message
+        else:
+            message = subject_root_container.message
+
+        if message.mailFrom in addresses_to_care or len(list(set(addresses_to_care) & set(message.mailTo))) > 0:
+            temp_subject_table[subject] = subject_root_container
+
+    # Second filter, we remove all the elements that are not conversations. This is the case of conversations
+    # with only one message.
+
+    subject_table = temp_subject_table
+    temp_subject_table = {}
+    for subject in subject_table:
+
+        subject_root_container = subject_table[subject]
+
+        if subject_root_container.message is not None and len(subject_root_container.children) == 0:
+            continue
+        else:
+            temp_subject_table[subject] = subject_root_container
+
+    subject_table = temp_subject_table
+
+    return subject_table
+
+
+
+

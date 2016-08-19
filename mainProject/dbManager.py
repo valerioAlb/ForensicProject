@@ -34,8 +34,7 @@ class dbManager(object):
             if sys.getsizeof(self.tempData) > 1000000:
                 print 'UPLOADING ########### The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
                 #try:
-                for success, info in helpers.parallel_bulk(self.es, self.tempData, thread_count=4):
-                    if not success: print('Doc failed', info)
+                helpers.bulk(self.es, self.tempData)
                 #except:
                     #print 'Error while uploading : ', actions
                 print 'uploaded!'
@@ -45,8 +44,7 @@ class dbManager(object):
     def forceBulk(self):
         if len(self.tempData) > 0:
             print 'UPLOADING ############# The SIZE IS:  ' + str(sys.getsizeof(self.tempData))
-            for success, info in helpers.parallel_bulk(self.es, self.tempData, thread_count=4):
-                if not success: print('Doc failed', info)
+            helpers.bulk(self.es, self.tempData)
             self.tempData = []
 
     def initializeDB(self):

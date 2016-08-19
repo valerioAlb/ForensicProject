@@ -6,7 +6,7 @@ print
 
 print 'Initialization of the messages'
 
-start = '2014-09-09'
+start = '2010-09-09'
 end = 'now'
 
 mails = script_search_methods.extract_mails_from_interval(start, end)
@@ -33,8 +33,9 @@ for subject,container in values:
     threading_methods.print_container(container)
 '''
 
-#subject_table = threading_methods.thread2(messages)
+# subject_table = threading_methods.refine_result(subject_table)
 
 for element in subject_table:
     print '########################'
     threading_methods.print_element(subject_table[element])
+

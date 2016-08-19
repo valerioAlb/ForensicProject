@@ -10,7 +10,7 @@ from time import sleep
 LOG_PATH = './LOG.log'
 
 #walkpath='/home/valerio/Scrivania/DatasetMBOX'
-walkpath='/home/valerio/Scrivania/EmailPersonali'
+walkpath='/home/valerio/Scrivania/EmailRemote'
 
 # walkpath='/media/valerio/ExternalHD/RevisedEDRMv1_Complete/RevisedEDRMv1_Complete/andrew_lewis/'
 

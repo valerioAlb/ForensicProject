@@ -7,6 +7,7 @@ class Container:
         self.message = self.parent = None
         self.children = []
 
+
     def remove_child(self, child):
         self.children.remove(child)
         # Remove the child, and remove the parent-link
